@@ -34,6 +34,20 @@ node scripts/install.mjs            # install or refresh in the desktop profile
 node scripts/install.mjs --uninstall
 ```
 
+### From npm
+
+Published as [`dsh-session-copy`](https://www.npmjs.com/package/dsh-session-copy):
+
+```bash
+dsh plugin add dsh-session-copy
+```
+
+Releases are built by GitHub Actions and carry a
+[SLSA provenance statement](https://registry.npmjs.org/-/npm/v1/attestations/dsh-session-copy@1.1.2),
+so the tarball on npm can be traced back to the commit and workflow that built
+it. Publishing uses npm's trusted publishing: the workflow authenticates with a
+short-lived OIDC token, and no long-lived npm token is stored in the repository.
+
 ### From the plugin market
 
 The repository also publishes a single-plugin [plugin market index][index] — the
@@ -116,6 +130,16 @@ its entry list at boot.
 设置 → 插件 里的卡片名称与说明来自 `locale/zh.json` 的 `meta.title` / `meta.description`，图标来自 `package.json` 的 `icon` 字段，所以不需要加载客户端代码就能显示。
 
 安装与卸载见上方命令；改名后请重启 DeepSeek Harness，Loader 的条目列表在启动时组装。
+
+### 从 npm 安装
+
+已发布为 [`dsh-session-copy`](https://www.npmjs.com/package/dsh-session-copy)：
+
+```bash
+dsh plugin add dsh-session-copy
+```
+
+版本由 GitHub Actions 构建，并附带 [SLSA provenance 证明](https://registry.npmjs.org/-/npm/v1/attestations/dsh-session-copy@1.1.2)，npm 上的 tarball 可以追溯到构建它的 commit 与 workflow。发布走 npm 的信任发布（trusted publishing），由 OIDC 换取短时有效的凭据，仓库里不保存任何长期 token。
 
 ### 从插件市场安装
 
