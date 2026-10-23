@@ -1,6 +1,6 @@
 {
   "name": "dsh-session-copy",
-  "version": "1.1.2",
+  "version": "1.1.3",
   "type": "module",
   "description": "One copy button in the session header: deep link, whole conversation as Markdown, or the working directory. · 会话标题栏一键复制：深度链接、整段对话 Markdown、工作目录。",
   "icon": "./icon.svg",
