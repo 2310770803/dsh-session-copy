@@ -19,6 +19,14 @@ name: Publish to npm
 #   read/write package permission and "Bypass 2FA" checked (that flag is
 #   unchecked by default and publishing from CI needs it).
 #
+# Timing matters for the first publish either way. A newly created trusted
+# publisher must validate itself with a successful publish within 48 hours or it
+# expires and cannot be edited, only deleted and recreated; and a brand-new
+# package name has to exist before either credential can be attached to it.
+# So: publish once with a token (or by hand), then attach the trusted publisher
+# and cut the next release. Ordering it the other way risks a dead 48-hour
+# window in a repository nobody is watching.
+#
 # With neither configured the job skips the publish step and says so, rather
 # than failing a release for a reason unrelated to the code.
 
