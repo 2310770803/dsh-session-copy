@@ -17,7 +17,8 @@ name: Publish to npm
 #   A granular access token stored as the NPM_TOKEN secret. npm stopped issuing
 #   classic tokens in November 2025, so this has to be a granular token with
 #   read/write package permission and "Bypass 2FA" checked (that flag is
-#   unchecked by default and publishing from CI needs it).
+#   unchecked by default, and every package now refuses a publish that carries
+#   neither 2FA nor a bypass token, so without it the publish 403s).
 #
 # Timing matters for the first publish either way. A newly created trusted
 # publisher must validate itself with a successful publish within 48 hours or it
