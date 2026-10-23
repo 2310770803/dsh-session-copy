@@ -58,17 +58,45 @@ export function apply(ctx) {
   try {
     ctx.inject(['webServer'], (scope) => {
       try {
+        /** Resolve `sessionQuery` lazily so a Host version bump degrades, not breaks. */
+        const query = () => {
+          const service = serviceOf(scope, ctx, 'sessionQuery');
+          if (service === undefined) {
+            const error = new Error(
+              'dsh-session-copy: the sessionQuery service is unavailable in this DSH version',
+            );
+            error.status = 503;
+            throw error;
+          }
+          return service;
+        };
+
         const handler = createSessionSnapshotHandler({
+          // The raw, replay-validated log. Kept as the fallback: it always
+          // exists, even where the surface fold is unavailable or rejects a log.
           readSession: (sessionId) => {
-            const query = serviceOf(scope, ctx, 'sessionQuery');
-            if (query === undefined || typeof query.readSession !== 'function') {
+            const service = query();
+            if (typeof service.readSession !== 'function') {
               const error = new Error(
-                'dsh-session-copy: the sessionQuery service is unavailable in this DSH version',
+                'dsh-session-copy: sessionQuery.readSession is unavailable in this DSH version',
               );
               error.status = 503;
               throw error;
             }
-            return query.readSession(sessionId);
+            return service.readSession(sessionId);
+          },
+          // The current model surface: the events the model itself still holds,
+          // with compaction-shadowed rows already folded away. Preferred, so a
+          // long or repeatedly compacted session exports what the model sees
+          // rather than the whole pre-compaction log.
+          readSurface: (sessionId) => {
+            const service = query();
+            if (typeof service.readSurface !== 'function') {
+              const error = new Error('dsh-session-copy: readSurface is unavailable');
+              error.code = 'SESSION_COPY_NO_SURFACE';
+              throw error;
+            }
+            return service.readSurface(sessionId);
           },
           trustedHosts: () => {
             const runtime = serviceOf(scope, ctx, 'webRuntime');

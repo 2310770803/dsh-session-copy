@@ -1,19 +1,34 @@
 /**
  * The plugin-owned Host HTTP route behind the browser's "Copy as Markdown".
  *
- * The route is read-only: it replays one session through `sessionQuery`,
- * converts it to Markdown and hands it back to the same-origin browser that
- * asked for it. Nothing is persisted and nothing leaves the machine.
+ * The route is read-only: it reads one session, converts it to Markdown and
+ * hands it back to the same-origin browser that asked for it. Nothing is
+ * persisted and nothing leaves the machine.
+ *
+ * Which read is used matters. `sessionQuery.readSession` replays and validates
+ * the *complete raw* log, including events the Host has since shadowed via
+ * `compaction/prune` and bypassing anything the model no longer sees.
+ * `sessionQuery.readSurface` returns the current model surface — the same event
+ * set the model itself reasons over — so a compacted session exports what the
+ * model actually still holds. `readSurface` is preferred and `readSession` is
+ * the fallback for releases (or readings) where the surface cannot be folded.
  *
  * Every failure path answers with a status and a short body; the handler never
  * throws, so a missing or renamed Host service can only cost the Markdown menu
  * item, never the application.
  */
 
-import { extractConversation, renderConversation } from './markdown.js';
+import { clampMarkdown, extractConversation, renderConversation } from './markdown.js';
 
 export const SESSION_COPY_PATH = '/api/session-copy.snapshot';
 export const MAX_REQUEST_BYTES = 4096;
+
+/**
+ * Upper bound on the Markdown handed to the browser. A real session produced
+ * 434 KB, which is past what a single clipboard write reliably accepts and is
+ * not useful to paste; the document is trimmed on a section boundary instead.
+ */
+export const MAX_MARKDOWN_CHARACTERS = 220_000;
 
 class RequestBoundaryError extends Error {
   constructor(status, message) {
@@ -131,17 +146,51 @@ function eventsOf(snapshot) {
   return [];
 }
 
+function cwdOf(snapshot) {
+  const sessionHeader = headerOf(snapshot);
+  if (sessionHeader === undefined) return null;
+  return typeof sessionHeader.cwd === 'string' && sessionHeader.cwd !== '' ? sessionHeader.cwd : null;
+}
+
 /**
  * Build the Node HTTP handler registered with DSH's `webServer`.
  *
  * @param {{
  *   readSession: (sessionId: string) => Promise<unknown>,
+ *   readSurface?: (sessionId: string) => Promise<unknown>,
  *   trustedHosts?: () => readonly string[],
  *   onError?: (error: unknown) => void,
+ *   maxCharacters?: number,
  * }} options
  * @returns {(request: import('node:http').IncomingMessage, response: import('node:http').ServerResponse) => Promise<void>}
  */
-export function createSessionSnapshotHandler({ readSession, trustedHosts = () => [], onError = () => {} }) {
+export function createSessionSnapshotHandler({
+  readSession,
+  readSurface,
+  trustedHosts = () => [],
+  onError = () => {},
+  maxCharacters = MAX_MARKDOWN_CHARACTERS,
+}) {
+  /**
+   * Prefer the current model surface; fall back to the raw log if the surface
+   * cannot be folded (older release, or a log the strict surface validator
+   * rejects). The fallback is what makes this resilient across DSH versions.
+   */
+  const read = async (sessionId) => {
+    if (typeof readSurface === 'function') {
+      try {
+        return { snapshot: await readSurface(sessionId), source: 'surface' };
+      } catch (error) {
+        try {
+          onError(error);
+        } catch {
+          /* logging must not mask the fallback */
+        }
+      }
+    }
+    return { snapshot: await readSession(sessionId), source: 'log' };
+  };
+
   return async (request, response) => {
     try {
       if (request.method !== 'POST') {
@@ -171,25 +220,27 @@ export function createSessionSnapshotHandler({ readSession, trustedHosts = () =>
         throw new RequestBoundaryError(400, 'sessionId is required');
       }
 
-      const snapshot = await readSession(sessionId);
-      const sessionHeader = headerOf(snapshot);
+      const { snapshot, source } = await read(sessionId);
       const events = eventsOf(snapshot);
-      const { title, entries, stats } = extractConversation(events);
-      const cwd = sessionHeader !== undefined && typeof sessionHeader.cwd === 'string'
-        ? sessionHeader.cwd
-        : null;
+      const { title, items, stats } = extractConversation(events);
+      const cwd = cwdOf(snapshot);
       const resolvedTitle = title
-        ?? (typeof sessionHeader?.title === 'string' && sessionHeader.title !== '' ? sessionHeader.title : null);
-      const markdown = renderConversation(entries, { title: resolvedTitle, sessionId, cwd });
+        ?? (typeof headerOf(snapshot)?.title === 'string' && headerOf(snapshot).title !== ''
+          ? headerOf(snapshot).title
+          : null);
+      const full = renderConversation(items, { title: resolvedTitle, sessionId, cwd });
+      const clamped = clampMarkdown(full, maxCharacters);
 
       writeJson(response, 200, {
         ok: true,
         sessionId,
         title: resolvedTitle,
         cwd,
-        markdown,
-        characters: markdown.length,
-        turns: entries.length,
+        markdown: clamped.markdown,
+        characters: clamped.markdown.length,
+        truncated: clamped.truncated,
+        source,
+        messages: items.length,
         stats,
       });
     } catch (error) {

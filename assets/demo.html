@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<style>
+  :root{
+    --dsw-alias-label-primary:#0e1726; --dsw-alias-label-secondary:#5b6b82;
+    --dsw-alias-border-l2:#dfe5ee; --dsw-alias-bg-base:#ffffff;
+    --dsw-alias-interactive-bg-hover:#eef2f8; --dsw-alias-label-error:#b42318;
+    --dsw-font-family:"Segoe UI",system-ui,-apple-system,sans-serif;
+  }
+  html,body{margin:0;background:#e9edf4;font-family:var(--dsw-font-family)}
+  .stage{width:760px;padding:28px 34px 190px;box-sizing:border-box}
+  .caption{font:600 13px/1.4 var(--dsw-font-family);color:#5b6b82;letter-spacing:.02em;
+    text-transform:uppercase;margin:0 0 14px}
+  /* A faithful stand-in for the real session header. */
+  .header{display:flex;align-items:center;justify-content:space-between;
+    height:52px;padding:0 14px;background:var(--dsw-alias-bg-base);
+    border:1px solid var(--dsw-alias-border-l2);border-radius:12px 12px 0 0}
+  .headerLeft{display:flex;align-items:center;gap:10px;min-width:0}
+  .dot{width:22px;height:22px;border-radius:6px;background:#3d53f5;flex:none}
+  .title{font:600 13px/1.2 var(--dsw-font-family);color:var(--dsw-alias-label-primary);
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:330px}
+  .headerRight{display:flex;align-items:center;gap:10px}
+  .ghost{width:28px;height:28px;border-radius:8px;display:inline-flex;align-items:center;
+    justify-content:center;color:var(--dsw-alias-label-secondary)}
+  .ghost svg{width:15px;height:15px}
+  .body{height:52px;background:var(--dsw-alias-bg-base);border:1px solid var(--dsw-alias-border-l2);
+    border-top:0;border-radius:0 0 12px 12px;display:flex;align-items:center;padding:0 14px;
+    color:#8b98ab;font-size:12px}
+  .dshSessionCopyWrap{position:relative;display:inline-flex;align-items:center}.dshSessionCopyButton{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;flex:none;padding:0;border:0;border-radius:8px;background:transparent;cursor:pointer;color:var(--dsw-alias-label-secondary)}.dshSessionCopyButton svg{width:15px;height:15px}.dshSessionCopyButton:hover,.dshSessionCopyButton[aria-expanded="true"]{color:var(--dsw-alias-label-primary);background:var(--dsw-alias-interactive-bg-hover)}.dshSessionCopyNode{position:relative;display:inline-flex;align-items:center}.dshSessionCopyPopover{position:absolute;top:calc(100% + 6px);right:0;z-index:45;display:flex;flex-direction:column;gap:2px;min-width:188px;padding:4px;border:1px solid var(--dsw-alias-border-l2);border-radius:10px;background:var(--dsw-alias-bg-base,#fff);box-shadow:0 12px 28px rgba(0,0,0,.18)}.dshSessionCopyItem{display:flex;align-items:center;gap:8px;width:100%;padding:6px 10px;border:0;border-radius:6px;background:transparent;cursor:pointer;color:var(--dsw-alias-label-primary);font-family:var(--dsw-font-family);font-size:12px;line-height:18px;text-align:left;white-space:nowrap}.dshSessionCopyItem:hover,.dshSessionCopyItem:focus-visible{background:var(--dsw-alias-interactive-bg-hover);outline:none}.dshSessionCopyItemIcon{display:inline-flex;align-items:center;flex:none;color:var(--dsw-alias-label-secondary)}.dshSessionCopyItemIcon svg{width:14px;height:14px}.dshSessionCopyNotice{position:absolute;top:calc(100% + 8px);right:0;z-index:40;max-width:min(440px,62vw);padding:6px 10px;border:1px solid var(--dsw-alias-border-l2);border-radius:8px;background:var(--dsw-alias-bg-base,#fff);color:var(--dsw-alias-label-primary);font-family:var(--dsw-font-family);font-size:12px;line-height:18px;box-shadow:0 8px 24px rgba(0,0,0,.18);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;pointer-events:none}.dshSessionCopyNoticeError{color:var(--dsw-alias-label-error,#b42318)}
+  .dshSessionCopyButton{color:var(--dsw-alias-label-primary) !important;
+    background:var(--dsw-alias-interactive-bg-hover) !important;
+    width:24px !important;height:24px !important}
+  .dshSessionCopyButton svg{width:22px !important;height:22px !important}
+  .dshSessionCopyPopover{min-width:214px;top:calc(100% + 8px) !important}
+  .dshSessionCopyItem{font-size:12.5px;padding:7px 10px}
+  .holder{position:relative;display:inline-flex}
+</style></head>
+<body>
+<div class="stage">
+  <p class="caption">One button in the session header &middot; three actions behind it</p>
+  <div class="header">
+    <div class="headerLeft"><span class="dot"></span><span class="title">dsh-session-copy</span></div>
+    <div class="headerRight">
+      <span class="ghost"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="5.5"/><path d="M8 5.5v3l2 1.5"/></svg></span>
+      <span class="ghost"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 4h10M3 8h10M3 12h6"/></svg></span>
+      <span class="dshSessionCopyWrap"><span class="dshSessionCopyNode">
+        <button class="dshSessionCopyButton" aria-haspopup="menu" aria-expanded="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Session Copy Menu">
+  <!-- No background plate: the artwork sits on whatever surface the host draws
+       it against, so the same file reads on both the light and dark themes. -->
+  <defs>
+    <!-- Hides the back sheet where the front sheet covers it, so the faint
+         outline never shows through the slots cut out below. -->
+    <mask id="behind" maskUnits="userSpaceOnUse" x="0" y="0" width="64" height="64">
+      <rect width="64" height="64" fill="#fff"/>
+      <rect x="17" y="24" width="23" height="26" rx="5.5" fill="#000"/>
+    </mask>
+    <!-- The two rules were the background colour showing through the white
+         sheet; with the sheet blue they become cut-outs, which keeps them
+         legible on any background instead of blue-on-blue. -->
+    <mask id="slots" maskUnits="userSpaceOnUse" x="0" y="0" width="64" height="64">
+      <rect width="64" height="64" fill="#000"/>
+      <rect x="17" y="24" width="23" height="26" rx="5.5" fill="#fff"/>
+      <path d="M23.5 34.5h10M23.5 40h7" fill="none" stroke="#000" stroke-width="2.6" stroke-linecap="round"/>
+    </mask>
+  </defs>
+  <g mask="url(#behind)">
+    <!-- The brighter end of the old gradient, so the outline still separates
+         from a dark host background where the main sheet's blue is dim. -->
+    <rect x="26" y="14" width="21" height="25" rx="5" fill="none" stroke="#5B7BFF" stroke-opacity="0.85" stroke-width="2.6"/>
+  </g>
+  <rect x="17" y="24" width="23" height="26" rx="5.5" fill="#3D53F5" mask="url(#slots)"/>
+</svg>
+</button>
+        <div class="dshSessionCopyPopover" role="menu">
+          <button class="dshSessionCopyItem" role="menuitem"><span class="dshSessionCopyItemIcon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6.5 9.5l3-3M6.8 4.6l1.1-1.1a2.6 2.6 0 013.7 3.7l-1.1 1.1M9.2 11.4l-1.1 1.1a2.6 2.6 0 01-3.7-3.7l1.1-1.1"/></svg></span><span>Copy deep link</span></button>
+          <button class="dshSessionCopyItem" role="menuitem"><span class="dshSessionCopyItemIcon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 2h5l3 3v9H4z"/><path d="M9 2v3h3"/></svg></span><span>Copy as Markdown</span></button>
+          <button class="dshSessionCopyItem" role="menuitem"><span class="dshSessionCopyItemIcon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 5a1 1 0 011-1h3l1.2 1.5H13a1 1 0 011 1V12a1 1 0 01-1 1H3a1 1 0 01-1-1z"/></svg></span><span>Copy working directory</span></button>
+        </div>
+      </span></span>
+    </div>
+  </div>
+  <div class="body">Everything else stays exactly where it was.</div>
+</div>
+</body></html>

@@ -1,58 +1,126 @@
 # dsh-session-copy
 
-English | [中文](#中文)
+English | [中文](README.zh.md)
 
-One copy button in the DSH Web session header. Click it to open a small menu with
-three actions:
+[![npm](https://img.shields.io/npm/v/dsh-session-copy?style=flat-square&label=npm&color=cb3837)](https://www.npmjs.com/package/dsh-session-copy)
+[![npm downloads](https://img.shields.io/npm/dm/dsh-session-copy?style=flat-square)](https://www.npmjs.com/package/dsh-session-copy)
+[![license](https://img.shields.io/badge/license-MIT-blue?style=flat-square)](LICENSE)
+[![publish](https://img.shields.io/github/actions/workflow/status/2310770803/dsh-session-copy/publish.yml?style=flat-square&label=publish)](../../actions/workflows/publish.yml)
+[![SLSA](https://img.shields.io/badge/SLSA-provenance-brightgreen?style=flat-square)](https://registry.npmjs.org/-/npm/v1/attestations/dsh-session-copy@latest)
 
-| Action | What lands on the clipboard |
+![One button in the session header, three actions behind it](https://raw.githubusercontent.com/2310770803/dsh-session-copy/main/assets/demo.png)
+
+One button in the DSH Web session header. Click it and pick one of three things to
+copy — **deep link**, **whole conversation as Markdown**, or **working directory**.
+No more row of flat buttons competing with the toolbar.
+
+---
+
+## Why this exists
+
+The session header is a crowded strip of icon buttons, and copying a conversation
+out of DSH used to mean three of them. This plugin folds the three into one
+28-pixel button whose menu carries the same three actions, so the header gains
+nothing but a single icon.
+
+The one that actually takes work is **Markdown**. A session log is not a chat
+transcript: it is a stream of tool calls, retries, pruned rows, injected context
+and — after a while — compaction checkpoints. This plugin reconstructs the
+conversation from that stream on the Host side and hands back clean Markdown.
+
+## What you get
+
+| Menu item | What lands on the clipboard |
 | --- | --- |
-| **Copy deep link** | `@[title](dsh-session:<base64url(session id)>)` — the canonical DSH session mention. Pasting it into any composer makes the Host attach that session's snapshot, so another conversation can read this one. |
-| **Copy as Markdown** | The whole conversation rendered as clean Markdown (headings per turn, tool calls and attachments folded into the transcript), produced by the Host-side read route. |
-| **Copy working directory** | The `cwd` of the session, resolved from the Session list projection and falling back to the Host snapshot. |
+| **Copy deep link** | `@[title](dsh-session:<base64url(session id)>)` — the canonical DSH session mention. Paste it into any composer and the Host attaches that session's snapshot, so another conversation can read this one. |
+| **Copy as Markdown** | The whole conversation as clean Markdown: one section per message, every assistant step kept, tool output and reasoning folded away, compaction points marked, code fences balanced. |
+| **Copy working directory** | The session's `cwd`, read from the Session list projection with the Host snapshot as fallback. |
 
-The button is a single 28 px icon that follows the header's secondary-label
-color, so it disappears into the toolbar until hovered. Everything is
-feature-detected against the shared client module table: if a future DSH release
-drops the `Menu` primitive, the same three actions render in a self-contained
-popover instead of degrading into a row of flat buttons.
-
-## Display metadata
-
-The Settings → Plugins card reads this package's metadata without evaluating
-`lib/client.js`:
-
-- `locale/en.json` and `locale/zh.json` — `meta.title` / `meta.description`;
-- `package.json` `name` / `description` as the fallback;
-- `package.json` `icon` (`./icon.svg`) for the card artwork.
+Every action reports back in a small notice — including the character count on a
+Markdown copy, so you can tell a 400-character session from a 400,000-character
+one before you paste it somewhere.
 
 ## Install
 
-```bash
-node scripts/install.mjs --check    # report profile health, change nothing
-node scripts/install.mjs            # install or refresh in the desktop profile
-node scripts/install.mjs --uninstall
-```
-
 ### From npm
 
-Published as [`dsh-session-copy`](https://www.npmjs.com/package/dsh-session-copy):
-
-```bash
+```sh
 dsh plugin add dsh-session-copy
 ```
 
-Releases are built by GitHub Actions and carry a
-[SLSA provenance statement](https://registry.npmjs.org/-/npm/v1/attestations/dsh-session-copy@1.1.2),
-so the tarball on npm can be traced back to the commit and workflow that built
-it. Publishing uses npm's trusted publishing: the workflow authenticates with a
-short-lived OIDC token, and no long-lived npm token is stored in the repository.
+### Inside the desktop app
 
-### From the plugin market
+The desktop app has its own plugin manager: open **Settings → Plugins** and
+install from there, rather than with the CLI (which targets a different profile
+while the app is running). Then restart DeepSeek Harness — the Loader assembles
+its plugin list at boot, so a reload of the page is not enough.
 
-The repository also publishes a single-plugin [plugin market index][index] — the
-format DSH's **Plugins → Discover** tab and the `plugin_market` agent tool read.
-That is what makes the plugin searchable inside DSH before it exists on npm:
+### From this checkout
+
+```sh
+node scripts/install.mjs --check    # report profile health, change nothing
+node scripts/install.mjs            # install or refresh in the current profile
+node scripts/install.mjs --uninstall
+```
+
+### From a release tarball
+
+The catalog install path, for hosts that would rather not build from source:
+
+```sh
+dsh plugin --profile web add \
+  https://github.com/2310770803/dsh-session-copy/releases/latest/download/dsh-session-copy.tgz
+```
+
+The asset name is deliberately version-free. A `releases/latest/download/` URL
+resolves `latest` at request time but takes the filename literally, so a
+versioned filename would work until the next release and then quietly 404; the
+release workflow re-uploads `dsh-session-copy.tgz` on every tag to keep that URL
+stable.
+
+## How the Markdown is built
+
+Three decisions here are the difference between a usable export and a broken one,
+and each of them replaced a bug:
+
+**Every assistant step is kept, not just the last one.** A turn is not one reply
+— an agentic turn is twenty model steps interleaved with tool calls. Keeping only
+the final `assistant/message` of each turn discarded 41% of the assistant text on
+a real session (15,717 of 26,657 characters), and lost all 29 intermediate
+messages in one turn. All of them are emitted, in order.
+
+**Compaction is marked, not swallowed.** When DSH compacts a conversation it
+writes a `compact-checkpoint` message and a `compaction/summary` event, and the
+pre-compaction turns stop being what the model sees. Dropping those as "injected
+context" makes a long session export with its history silently missing — which
+reads as *"the copy is broken"*. They are rendered as an explicit
+**Conversation compacted** marker instead, so an intentional summary is never
+mistaken for lost content.
+
+**Fences are balanced across the document, not per message.** A message that ends
+inside a fenced code block used to get a synthetic closing fence, which left the
+*next* message's fences mismatched; one 21 KB export came out with 34 stray fence
+markers. Fences are tracked over the assembled document so what you paste renders
+as written.
+
+Reading is also bounded and version-tolerant:
+
+- `sessionQuery.readSurface` (the **current model surface**) is preferred over
+  `readSession` (the complete raw log including rows `compaction/prune` has
+  shadowed), and falls back to `readSession` if the surface cannot be folded.
+- The response is capped at 220,000 characters and trimmed on a section
+  boundary, because one real session produced a 434 KB document — past what a
+  single clipboard write reliably accepts.
+- Clipboard writes try the Host writer, then the `textarea` + `execCommand` path
+  (the one that survives long text and a blurred window), then the async
+  Clipboard API, twice. DSH's own bundled writer returns `false` as soon as
+  `navigator.clipboard.writeText` throws and never falls back, so delegating to it
+  alone was a trap.
+
+## Inside DSH: the plugin market
+
+The repository publishes a single-plugin [plugin market index][index] — the format
+DSH's **Plugins → Discover** tab and the `plugin_market` agent tool read:
 
 1. Turn on the market's Discover surface once, in **Settings → Plugins**:
    `@deepseek-ai/dsh-experimental-plugin-market-bundle` ships with DSH, switched
@@ -61,18 +129,18 @@ That is what makes the plugin searchable inside DSH before it exists on npm:
    `https://cdn.jsdelivr.net/gh/2310770803/dsh-session-copy@main/index.json`
 3. Search for "session copy" and install.
 
-The index pins an exact commit rather than a branch, so what Discover installs
-is reproducible; `node scripts/build-index.mjs` regenerates `index.json` from
-`package.json` and `locale/`, and `node scripts/check-index.mjs` validates the
-result with the host's own parser. The index must name the commit *before* the
-one that carries it, which is why the pinned SHA is not the file's own commit.
+The index pins an exact commit rather than a branch, so what Discover installs is
+reproducible. `node scripts/build-index.mjs` regenerates `index.json` from
+`package.json` and `locale/`; `node scripts/check-index.mjs` validates the result
+with the host's own parser. The index must name the commit *before* the one that
+carries it, which is why the pinned SHA is not the file's own commit.
 
-`node scripts/search-index.mjs` answers the other question — does a word typed
-into Discover actually surface the plugin. It runs the host's own search class
+`node scripts/search-index.mjs` answers the other question — whether a word typed
+into Discover actually surfaces the plugin. It runs the host's own search class
 over the index, so a pass there means Discover's list narrows to this plugin
 rather than merely that the JSON is well-formed:
 
-```bash
+```sh
 node scripts/search-index.mjs --market <dir> --validator <dir>
 ```
 
@@ -81,28 +149,41 @@ Both `<dir>`s are `@deepseek-ai/dsh-plugin-market` and
 extract them from `resources/app.asar` under `dsh/node_modules/@deepseek-ai/`.
 
 The plugin is also listed in the [awesome-dsh-plugin][awesome] catalog, whose
-entry is one YAML file in that repository — `data/plugins/2310770803__dsh-session-copy.yml`.
-Because that catalog prefers a prebuilt tarball over a build-from-source
-install, every release attaches one:
+entry is one YAML file in that repository,
+`data/plugins/2310770803__dsh-session-copy.yml`.
 
-```bash
-dsh plugin --profile web add \
-  https://github.com/2310770803/dsh-session-copy/releases/latest/download/dsh-session-copy.tgz
-```
+## Supply chain
 
-The asset name is deliberately version-free. A `releases/latest/download/` URL
-resolves `latest` at request time but takes the filename literally, so a
-versioned filename would work until the next release and then quietly 404; the
-release workflow re-uploads `dsh-session-copy.tgz` on every tag to keep that
-URL stable. Installing from source instead — `gh repo` / `git+https` — still
-works, it just needs a build-approval step.
+Releases are built by GitHub Actions and published with npm's **trusted
+publishing**: the workflow authenticates with a short-lived OIDC token, and no
+long-lived npm token exists in this repository. Every release carries a
+[SLSA provenance statement](https://registry.npmjs.org/-/npm/v1/attestations/dsh-session-copy@latest),
+so the tarball on npm can be traced back to the commit and workflow that built
+it. Publishing is idempotent — re-running a release for an already-published
+version is a no-op, not an error.
 
-The script copies the payload into
-`<DSH home>/profiles/<profile>/node_modules/dsh-session-copy`, adds the package
-to `dsh.profile.bundles`, and records a `file:../../plugins/dsh-session-copy`
-dependency. It also removes a stale `dsh-session-actions` install left by the
-previous package name. Restart DeepSeek Harness afterwards: the Loader composes
-its entry list at boot.
+## Compatibility
+
+| | |
+| --- | --- |
+| Host | DSH `0.2.1-rc.2` and newer (`@deepseek-ai/dsh-*` peers are pinned to the prerelease branches) |
+| Surface | DSH Web and the desktop app's Web view |
+| Permissions | none — the Host route is read-only and same-origin fenced |
+
+Everything is feature-detected against the shared client module table. If a future
+DSH release drops the `Menu` primitive, the same three actions render in a
+self-contained popover instead of degrading into a row of flat buttons; if it
+renames a service, the affected piece degrades rather than raising inside the boot
+activation audit.
+
+## Display metadata
+
+The Settings → Plugins card reads this package's metadata **without evaluating**
+`lib/client.js`:
+
+- `locale/en.json` and `locale/zh.json` — `meta.title` / `meta.description`;
+- `package.json` `name` / `description` as the fallback;
+- `package.json` `icon` (`./icon.svg`) for the card artwork.
 
 ## Layout
 
@@ -115,59 +196,9 @@ its entry list at boot.
 | `cordis.patch.yml` | Inserts the `session-copy` row into the Web profile. |
 | `locale/`, `icon.svg` | Plugin-list title, description and artwork. |
 
----
+## License
 
-## 中文
-
-在 DSH Web 会话标题栏放一个复制按钮，点开后是三项操作：
-
-- **复制深度链接**：写入 `@[标题](dsh-session:…)` 这段标准会话提及，粘到任何输入框里都能让宿主把这次会话的快照带进去，其他对话因此可以引读本次会话。
-- **复制为 Markdown**：由宿主侧只读路由把整段对话渲染成干净的 Markdown（含工具调用与附件摘要）。
-- **复制工作目录**：写入该会话的 `cwd`。
-
-按钮只有一个 28px 图标，跟随标题栏次要文字色，悬停才浮现。所有能力都做了特性探测：若将来 DSH 去掉共享的 `Menu` 原语，三个操作会改用自绘弹层，而不会退化成三个平铺按钮。
-
-设置 → 插件 里的卡片名称与说明来自 `locale/zh.json` 的 `meta.title` / `meta.description`，图标来自 `package.json` 的 `icon` 字段，所以不需要加载客户端代码就能显示。
-
-安装与卸载见上方命令；改名后请重启 DeepSeek Harness，Loader 的条目列表在启动时组装。
-
-### 从 npm 安装
-
-已发布为 [`dsh-session-copy`](https://www.npmjs.com/package/dsh-session-copy)：
-
-```bash
-dsh plugin add dsh-session-copy
-```
-
-版本由 GitHub Actions 构建，并附带 [SLSA provenance 证明](https://registry.npmjs.org/-/npm/v1/attestations/dsh-session-copy@1.1.2)，npm 上的 tarball 可以追溯到构建它的 commit 与 workflow。发布走 npm 的信任发布（trusted publishing），由 OIDC 换取短时有效的凭据，仓库里不保存任何长期 token。
-
-### 从插件市场安装
-
-仓库还发布了一份单插件 [插件市场索引][index]——就是 DSH **插件 → 发现** 和 `plugin_market` 工具读取的 format 1 文档。正因为有它，插件还没上 npm 时也能在 DSH 里被搜到：
-
-1. 先在「设置 → 插件」里打开市场所需的 `@deepseek-ai/dsh-experimental-plugin-market-bundle`（DSH 自带，默认关闭）；
-2. **插件 → 发现 → 索引源** 添加
-   `https://cdn.jsdelivr.net/gh/2310770803/dsh-session-copy@main/index.json`；
-3. 搜「session copy」即可安装。
-
-索引固定的是具体 commit 而不是分支，所以装下来的版本可复现。`node scripts/build-index.mjs` 依据 `package.json` 与 `locale/` 重新生成 `index.json`，`node scripts/check-index.mjs` 用宿主自己的解析器校验结果；索引指向的必须是它前面那个 commit，因此锁定的 SHA 不会等于该文件自身的提交。
-
-`node scripts/search-index.mjs` 回答的是另一个问题——在「发现」里输入一个词，到底能不能搜出这个插件。它跑的是宿主自己的搜索类，所以通过意味着「发现」的列表真的会收敛到这个插件，而不只是 JSON 格式合法：
-
-```bash
-node scripts/search-index.mjs --market <dir> --validator <dir>
-```
-
-两个 `<dir>` 分别是已安装 DSH 里的 `@deepseek-ai/dsh-plugin-market` 与 `@deepseek-ai/dsh-plugin-market-index`，可从 `resources/app.asar` 的 `dsh/node_modules/@deepseek-ai/` 下解出。
-
-插件同时收录在 [awesome-dsh-plugin][awesome] 目录中，条目就是该仓库里的一个 YAML 文件：`data/plugins/2310770803__dsh-session-copy.yml`。该目录优先用预构建 tarball 而不是源码构建，所以每次发版都会附一个：
-
-```bash
-dsh plugin --profile web add \
-  https://github.com/2310770803/dsh-session-copy/releases/latest/download/dsh-session-copy.tgz
-```
-
-资产名刻意不带版本号：`releases/latest/download/` 只在请求时解析 `latest`，文件名是照字面取的，所以带版本号的名字提交当天有效、下一次发版就开始 404，而且不会有人察觉。发布流程会在每个 tag 上重传 `dsh-session-copy.tgz`，让这个链接始终有效。从源码装（`git+https`）同样可用，只是需要一步构建授权。
+[MIT](LICENSE)
 
 [index]: https://cdn.jsdelivr.net/gh/2310770803/dsh-session-copy@main/index.json
 [awesome]: https://github.com/awesome-dsh-plugin/awesome-dsh-plugin
