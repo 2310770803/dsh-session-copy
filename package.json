@@ -6,7 +6,7 @@
   "icon": "./icon.svg",
   "repository": {
     "type": "git",
-    "url": "https://github.com/2310770803/dsh-session-copy.git"
+    "url": "git+https://github.com/2310770803/dsh-session-copy.git"
   },
   "homepage": "https://github.com/2310770803/dsh-session-copy#readme",
   "bugs": {
