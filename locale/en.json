@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Session Copy Menu",
+    "description": "Adds one copy button to the session header. Click it for three actions: copy a deep link (an @-mention any DSH session can use to reference and read this conversation), copy the whole conversation as Markdown, or copy the working directory."
+  }
+}

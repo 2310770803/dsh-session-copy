@@ -1,0 +1,8 @@
+# Add one dual-face plugin row to the Web profile.
+#
+# The host half (src/index.js) owns the session-snapshot read route used by the
+# Markdown copy action; dsh.client discovers the browser half from this same
+# package manifest and mounts the additive Session-header copy menu.
+- insert:
+    - id: session-copy
+      name: dsh-session-copy

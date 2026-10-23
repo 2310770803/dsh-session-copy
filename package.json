@@ -1,0 +1,64 @@
+{
+  "name": "dsh-session-copy",
+  "version": "1.1.0",
+  "private": true,
+  "type": "module",
+  "description": "One copy button in the session header: deep link, whole conversation as Markdown, or the working directory. · 会话标题栏一键复制：深度链接、整段对话 Markdown、工作目录。",
+  "icon": "./icon.svg",
+  "license": "MIT",
+  "main": "src/index.js",
+  "exports": {
+    ".": "./src/index.js",
+    "./client": "./lib/client.js",
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./icon": "./icon.svg",
+    "./locale/*.json": "./locale/*.json",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "cordis.patch.yml",
+    "icon.svg",
+    "locale",
+    "lib/client.js",
+    "src/**/*.js"
+  ],
+  "keywords": [
+    "deepseek",
+    "harness",
+    "dsh",
+    "dsh-plugin",
+    "copy",
+    "clipboard",
+    "deep-link",
+    "markdown",
+    "session"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-conversation",
+        "@deepseek-ai/dsh-client-ui-primitives"
+      ],
+      "platform": "web"
+    },
+    "manifestVersion": 1
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/dsh-client-ui-conversation": ">=0.2.0-rc.2 <1.0.0",
+    "@deepseek-ai/dsh-client-ui-primitives": ">=0.2.0-rc.2 <1.0.0",
+    "@deepseek-ai/dsh-host-webserver": ">=0.2.0-rc.2 <1.0.0",
+    "@deepseek-ai/dsh-session-query": ">=0.2.0-rc.2 <1.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@deepseek-ai/dsh-client-ui-conversation": { "optional": true },
+    "@deepseek-ai/dsh-client-ui-primitives": { "optional": true },
+    "@deepseek-ai/dsh-host-webserver": { "optional": true },
+    "@deepseek-ai/dsh-session-query": { "optional": true }
+  }
+}

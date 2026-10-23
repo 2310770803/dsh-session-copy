@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Session Copy Menu">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#5B7BFF"/>
+      <stop offset="1" stop-color="#3D53F5"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="15" fill="url(#bg)"/>
+  <rect x="26" y="14" width="21" height="25" rx="5" fill="none" stroke="#FFFFFF" stroke-opacity="0.55" stroke-width="2.6"/>
+  <rect x="17" y="24" width="23" height="26" rx="5.5" fill="#FFFFFF"/>
+  <path d="M23.5 34.5h10M23.5 40h7" stroke="#3D53F5" stroke-width="2.6" stroke-linecap="round"/>
+</svg>
