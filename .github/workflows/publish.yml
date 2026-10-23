@@ -138,9 +138,18 @@ jobs:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
           TRUSTED: ${{ vars.NPM_TRUSTED_PUBLISHING }}
 
+      # Re-running a release must not fail on "version already published": the
+      # tag may be re-run after a transient failure, and the tarball attach and
+      # verification steps below are both idempotent.
       - name: Publish
         if: steps.credential.outputs.present == 'true' && (github.event_name == 'release' || inputs.dry-run != true)
-        run: npm publish --access public
+        run: |
+          version="$(node -p 'require("./package.json").version')"
+          if npm view "$(node -p 'require("./package.json").name')@${version}" version >/dev/null 2>&1; then
+            echo "::notice title=already published::${version} is already on npm; skipping publish so a re-run can still refresh the release asset."
+          else
+            npm publish --access public
+          fi
         env:
           # A granular token path. Empty under trusted publishing, where the npm
           # CLI detects the OIDC environment and authenticates before falling
