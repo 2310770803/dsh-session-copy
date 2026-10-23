@@ -53,6 +53,19 @@ is reproducible; `node scripts/build-index.mjs` regenerates `index.json` from
 result with the host's own parser. The index must name the commit *before* the
 one that carries it, which is why the pinned SHA is not the file's own commit.
 
+`node scripts/search-index.mjs` answers the other question — does a word typed
+into Discover actually surface the plugin. It runs the host's own search class
+over the index, so a pass there means Discover's list narrows to this plugin
+rather than merely that the JSON is well-formed:
+
+```bash
+node scripts/search-index.mjs --market <dir> --validator <dir>
+```
+
+Both `<dir>`s are `@deepseek-ai/dsh-plugin-market` and
+`@deepseek-ai/dsh-plugin-market-index` as shipped inside an installed DSH app —
+extract them from `resources/app.asar` under `dsh/node_modules/@deepseek-ai/`.
+
 The plugin is also listed in the [awesome-dsh-plugin][awesome] catalog, whose
 entry is one YAML file in that repository — `data/plugins/2310770803__dsh-session-copy.yml`.
 Because that catalog prefers a prebuilt tarball over a build-from-source
@@ -114,6 +127,14 @@ its entry list at boot.
 3. 搜「session copy」即可安装。
 
 索引固定的是具体 commit 而不是分支，所以装下来的版本可复现。`node scripts/build-index.mjs` 依据 `package.json` 与 `locale/` 重新生成 `index.json`，`node scripts/check-index.mjs` 用宿主自己的解析器校验结果；索引指向的必须是它前面那个 commit，因此锁定的 SHA 不会等于该文件自身的提交。
+
+`node scripts/search-index.mjs` 回答的是另一个问题——在「发现」里输入一个词，到底能不能搜出这个插件。它跑的是宿主自己的搜索类，所以通过意味着「发现」的列表真的会收敛到这个插件，而不只是 JSON 格式合法：
+
+```bash
+node scripts/search-index.mjs --market <dir> --validator <dir>
+```
+
+两个 `<dir>` 分别是已安装 DSH 里的 `@deepseek-ai/dsh-plugin-market` 与 `@deepseek-ai/dsh-plugin-market-index`，可从 `resources/app.asar` 的 `dsh/node_modules/@deepseek-ai/` 下解出。
 
 插件同时收录在 [awesome-dsh-plugin][awesome] 目录中，条目就是该仓库里的一个 YAML 文件：`data/plugins/2310770803__dsh-session-copy.yml`。该目录优先用预构建 tarball 而不是源码构建，所以每次发版都会附一个：
 
