@@ -25,7 +25,7 @@ on:
         default: false
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   publish:
@@ -63,6 +63,23 @@ jobs:
 
       - name: Inspect the tarball contents
         run: npm pack --dry-run
+
+      # The awesome-dsh-plugin catalog lets an entry declare a prebuilt tarball
+      # instead of a build-from-source install, and recommends it for plugins
+      # that are not on npm. Its one documented way to rot is a
+      # `releases/latest/download/<file>` URL whose <file> carries the version:
+      # `latest` is resolved per request but the filename is literal, so the
+      # link dies at the next release. The fix is to keep the asset name
+      # version-free on every release, which is what this step does — the URL
+      # in data/plugins/2310770803__dsh-session-copy.yml never has to change.
+      - name: Attach a version-free tarball to the release
+        if: github.event_name == 'release'
+        run: |
+          npm pack --pack-destination .
+          mv "dsh-session-copy-$(node -p 'require("./package.json").version').tgz" dsh-session-copy.tgz
+          gh release upload "${GITHUB_REF_NAME}" dsh-session-copy.tgz --clobber
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Publish
         if: github.event_name == 'release' || inputs.dry-run != true
