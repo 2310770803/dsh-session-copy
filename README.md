@@ -34,6 +34,31 @@ node scripts/install.mjs            # install or refresh in the desktop profile
 node scripts/install.mjs --uninstall
 ```
 
+### From the plugin market
+
+The repository also publishes a single-plugin [plugin market index][index] — the
+format DSH's **Plugins → Discover** tab and the `plugin_market` agent tool read.
+That is what makes the plugin searchable inside DSH before it exists on npm:
+
+1. Turn on the market's Discover surface once, in **Settings → Plugins**:
+   `@deepseek-ai/dsh-experimental-plugin-market-bundle` ships with DSH, switched
+   off.
+2. **Plugins → Discover → Index sources →** add
+   `https://cdn.jsdelivr.net/gh/2310770803/dsh-session-copy@main/index.json`
+3. Search for "session copy" and install.
+
+The index pins an exact commit rather than a branch, so what Discover installs
+is reproducible; `node scripts/build-index.mjs` regenerates `index.json` from
+`package.json` and `locale/`, and `node scripts/check-index.mjs` validates the
+result with the host's own parser. The index must name the commit *before* the
+one that carries it, which is why the pinned SHA is not the file's own commit.
+
+The plugin is also listed in the [awesome-dsh-plugin][awesome] catalog, whose
+entry is one YAML file in that repository — `data/plugins/2310770803__dsh-session-copy.yml`.
+
+[index]: https://cdn.jsdelivr.net/gh/2310770803/dsh-session-copy@main/index.json
+[awesome]: https://github.com/awesome-dsh-plugin/awesome-dsh-plugin
+
 The script copies the payload into
 `<DSH home>/profiles/<profile>/node_modules/dsh-session-copy`, adds the package
 to `dsh.profile.bundles`, and records a `file:../../plugins/dsh-session-copy`

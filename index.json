@@ -1,0 +1,68 @@
+{
+  "format": 1,
+  "title": {
+    "en": "dsh-session-copy",
+    "zh": "dsh-session-copy"
+  },
+  "description": {
+    "en": "A single-plugin index, so Discover can list this plugin before it is published to npm.",
+    "zh": "单插件索引：在发布到 npm 之前，也能在「发现」里浏览并安装这个插件。"
+  },
+  "metadata": {
+    "categories": {
+      "session": {
+        "title": {
+          "en": "Sessions",
+          "zh": "会话"
+        }
+      }
+    }
+  },
+  "plugins": [
+    {
+      "name": "dsh-session-copy",
+      "title": {
+        "en": "Session Copy Menu",
+        "zh": "会话复制菜单"
+      },
+      "description": {
+        "en": "Adds one copy button to the session header. Click it for three actions: copy a deep link (an @-mention any DSH session can use to reference and read this conversation), copy the whole conversation as Markdown, or copy the working directory.",
+        "zh": "在会话标题栏提供一个复制按钮，点开就是三项操作：复制深度链接（一段 @ 提及，任何会话都能据此引用并读取这次对话）、复制整段对话为 Markdown、复制当前工作目录。"
+      },
+      "icon": "https://raw.githubusercontent.com/2310770803/dsh-session-copy/main/assets/icon-180.png",
+      "author": "2310770803",
+      "homepage": "https://github.com/2310770803/dsh-session-copy#readme",
+      "repository": {
+        "url": "https://github.com/2310770803/dsh-session-copy"
+      },
+      "metadata": {
+        "category": "session",
+        "keywords": [
+          "deepseek",
+          "harness",
+          "dsh",
+          "dsh-plugin",
+          "copy",
+          "clipboard",
+          "deep-link",
+          "markdown",
+          "session"
+        ]
+      },
+      "versions": [
+        {
+          "version": "1.1.0",
+          "publishTimestamp": 1792722833,
+          "source": {
+            "type": "git",
+            "url": "https://github.com/2310770803/dsh-session-copy",
+            "commit": "014464379d9a977dfb7a1b705bfab2c845e6c5c2"
+          },
+          "engines": {
+            "dsh": ">=0.2.0-rc.2 <1.0.0"
+          }
+        }
+      ]
+    }
+  ]
+}
