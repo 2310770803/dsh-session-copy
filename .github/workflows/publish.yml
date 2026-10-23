@@ -81,8 +81,23 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      # Without a token this would fail every release and leave a red X on the
+      # tag for a reason that has nothing to do with the code. Detect it first,
+      # so the job reports "skipped" until the secret exists instead of failing.
+      - name: Check for an npm token
+        id: token
+        run: |
+          if [ -n "${NPM_TOKEN}" ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "::notice title=npm publish skipped::No NPM_TOKEN secret. Add one at Settings -> Secrets and variables -> Actions to publish releases to npm."
+          fi
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+
       - name: Publish
-        if: github.event_name == 'release' || inputs.dry-run != true
+        if: steps.token.outputs.present == 'true' && (github.event_name == 'release' || inputs.dry-run != true)
         run: npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
