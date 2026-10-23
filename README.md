@@ -56,8 +56,6 @@ one that carries it, which is why the pinned SHA is not the file's own commit.
 The plugin is also listed in the [awesome-dsh-plugin][awesome] catalog, whose
 entry is one YAML file in that repository — `data/plugins/2310770803__dsh-session-copy.yml`.
 
-[index]: https://cdn.jsdelivr.net/gh/2310770803/dsh-session-copy@main/index.json
-[awesome]: https://github.com/awesome-dsh-plugin/awesome-dsh-plugin
 
 The script copies the payload into
 `<DSH home>/profiles/<profile>/node_modules/dsh-session-copy`, adds the package
@@ -92,3 +90,19 @@ its entry list at boot.
 设置 → 插件 里的卡片名称与说明来自 `locale/zh.json` 的 `meta.title` / `meta.description`，图标来自 `package.json` 的 `icon` 字段，所以不需要加载客户端代码就能显示。
 
 安装与卸载见上方命令；改名后请重启 DeepSeek Harness，Loader 的条目列表在启动时组装。
+
+### 从插件市场安装
+
+仓库还发布了一份单插件 [插件市场索引][index]——就是 DSH **插件 → 发现** 和 `plugin_market` 工具读取的 format 1 文档。正因为有它，插件还没上 npm 时也能在 DSH 里被搜到：
+
+1. 先在「设置 → 插件」里打开市场所需的 `@deepseek-ai/dsh-experimental-plugin-market-bundle`（DSH 自带，默认关闭）；
+2. **插件 → 发现 → 索引源** 添加
+   `https://cdn.jsdelivr.net/gh/2310770803/dsh-session-copy@main/index.json`；
+3. 搜「session copy」即可安装。
+
+索引固定的是具体 commit 而不是分支，所以装下来的版本可复现。`node scripts/build-index.mjs` 依据 `package.json` 与 `locale/` 重新生成 `index.json`，`node scripts/check-index.mjs` 用宿主自己的解析器校验结果；索引指向的必须是它前面那个 commit，因此锁定的 SHA 不会等于该文件自身的提交。
+
+插件同时收录在 [awesome-dsh-plugin][awesome] 目录中，条目就是该仓库里的一个 YAML 文件：`data/plugins/2310770803__dsh-session-copy.yml`。
+
+[index]: https://cdn.jsdelivr.net/gh/2310770803/dsh-session-copy@main/index.json
+[awesome]: https://github.com/awesome-dsh-plugin/awesome-dsh-plugin
