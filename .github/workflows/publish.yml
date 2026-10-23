@@ -1,0 +1,71 @@
+name: Publish to npm
+
+# The plugin market indexes (DSH's Plugins -> Discover tab, and the
+# awesome-dsh-plugin catalog behind it) list an entry as soon as the repository
+# exists, but the generated format-1 index at
+# https://cdn.jsdelivr.net/npm/dsh-plugin-catalog/index.json can only carry
+# entries that resolve to a published npm package. Publishing here is what
+# turns the GitHub repository into a market-listed plugin.
+#
+# Publishing needs an npm token that a repository secret cannot grant by
+# itself: create a granular automation token at
+# https://www.npmjs.com/settings/~/tokens and store it as the NPM_TOKEN secret
+# of this repository (Settings -> Secrets and variables -> Actions). Until it
+# exists, this workflow fails at `npm publish` with ENEEDAUTH and nothing else
+# breaks.
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      dry-run:
+        description: Pack and inspect the tarball without publishing
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Verify the manifest matches the release tag
+        id: manifest
+        run: |
+          node -e '
+            const pkg = require("./package.json")
+            const tag = process.env.GITHUB_REF_NAME ?? ""
+            console.log(`package ${pkg.name}@${pkg.version}`)
+            console.log(`tag ${tag || "(none)"}`)
+            // A release tag is optional here: workflow_dispatch publishes
+            // whatever the manifest says. When a tag is present it must be the
+            // same version, so a mistagged release cannot ship the wrong code.
+            if (tag && tag !== `v${pkg.version}` && tag !== pkg.version) {
+              console.error(`release tag ${tag} does not match package version ${pkg.version}`)
+              process.exit(1)
+            }
+            if (!pkg.dsh?.bundle?.patch) {
+              console.error("package.json declares no dsh.bundle — the market cannot install it")
+              process.exit(1)
+            }
+          '
+
+      - name: Inspect the tarball contents
+        run: npm pack --dry-run
+
+      - name: Publish
+        if: github.event_name == 'release' || inputs.dry-run != true
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
