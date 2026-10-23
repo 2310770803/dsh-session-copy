@@ -55,7 +55,20 @@ one that carries it, which is why the pinned SHA is not the file's own commit.
 
 The plugin is also listed in the [awesome-dsh-plugin][awesome] catalog, whose
 entry is one YAML file in that repository — `data/plugins/2310770803__dsh-session-copy.yml`.
+Because that catalog prefers a prebuilt tarball over a build-from-source
+install, every release attaches one:
 
+```bash
+dsh plugin --profile web add \
+  https://github.com/2310770803/dsh-session-copy/releases/latest/download/dsh-session-copy.tgz
+```
+
+The asset name is deliberately version-free. A `releases/latest/download/` URL
+resolves `latest` at request time but takes the filename literally, so a
+versioned filename would work until the next release and then quietly 404; the
+release workflow re-uploads `dsh-session-copy.tgz` on every tag to keep that
+URL stable. Installing from source instead — `gh repo` / `git+https` — still
+works, it just needs a build-approval step.
 
 The script copies the payload into
 `<DSH home>/profiles/<profile>/node_modules/dsh-session-copy`, adds the package
@@ -102,7 +115,14 @@ its entry list at boot.
 
 索引固定的是具体 commit 而不是分支，所以装下来的版本可复现。`node scripts/build-index.mjs` 依据 `package.json` 与 `locale/` 重新生成 `index.json`，`node scripts/check-index.mjs` 用宿主自己的解析器校验结果；索引指向的必须是它前面那个 commit，因此锁定的 SHA 不会等于该文件自身的提交。
 
-插件同时收录在 [awesome-dsh-plugin][awesome] 目录中，条目就是该仓库里的一个 YAML 文件：`data/plugins/2310770803__dsh-session-copy.yml`。
+插件同时收录在 [awesome-dsh-plugin][awesome] 目录中，条目就是该仓库里的一个 YAML 文件：`data/plugins/2310770803__dsh-session-copy.yml`。该目录优先用预构建 tarball 而不是源码构建，所以每次发版都会附一个：
+
+```bash
+dsh plugin --profile web add \
+  https://github.com/2310770803/dsh-session-copy/releases/latest/download/dsh-session-copy.tgz
+```
+
+资产名刻意不带版本号：`releases/latest/download/` 只在请求时解析 `latest`，文件名是照字面取的，所以带版本号的名字提交当天有效、下一次发版就开始 404，而且不会有人察觉。发布流程会在每个 tag 上重传 `dsh-session-copy.tgz`，让这个链接始终有效。从源码装（`git+https`）同样可用，只是需要一步构建授权。
 
 [index]: https://cdn.jsdelivr.net/gh/2310770803/dsh-session-copy@main/index.json
 [awesome]: https://github.com/awesome-dsh-plugin/awesome-dsh-plugin
