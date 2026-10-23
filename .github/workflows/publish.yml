@@ -57,28 +57,48 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          registry-url: 'https://registry.npmjs.org'
+          # Trusted publishing needs npm >= 11.5.1 on Node >= 22.14.0. Node 24
+          # bundles npm 11.17, so this satisfies both without a separate
+          # `npm install -g npm` (which would also be a supply-chain surface).
+          node-version: '24'
+
+      # Trusted publishing fails in a confusing way when the CLI is too old:
+      # npm ignores the OIDC environment and falls back to a token, which then
+      # does not exist. Fail loudly here instead.
+      - name: Check the npm CLI supports trusted publishing
+        run: |
+          echo "npm $(npm --version) on node $(node --version)"
+          NPM_VERSION="$(npm --version)" node -e '
+            const have = process.env.NPM_VERSION.split(".").map(Number)
+            const need = [11, 5, 1]
+            const cmp = (a, b) => a[0] - b[0] || a[1] - b[1] || a[2] - b[2]
+            if (cmp(have, need) < 0) {
+              console.error(`npm ${process.env.NPM_VERSION} is too old; trusted publishing needs >= 11.5.1`)
+              process.exit(1)
+            }
+            console.log("npm CLI is new enough for OIDC publishing")
+          '
 
       - name: Verify the manifest matches the release tag
         id: manifest
         run: |
           node -e '
             const pkg = require("./package.json")
-            const tag = process.env.GITHUB_REF_NAME ?? ""
+            // On a release this is the tag (v1.1.1); on workflow_dispatch it is
+            // the branch (main), which is not a version and must not be checked.
+            const isRelease = process.env.GITHUB_EVENT_NAME === "release"
+            const ref = process.env.GITHUB_REF_NAME ?? ""
             console.log(`package ${pkg.name}@${pkg.version}`)
-            console.log(`tag ${tag || "(none)"}`)
-            // A release tag is optional here: workflow_dispatch publishes
-            // whatever the manifest says. When a tag is present it must be the
-            // same version, so a mistagged release cannot ship the wrong code.
-            if (tag && tag !== `v${pkg.version}` && tag !== pkg.version) {
-              console.error(`release tag ${tag} does not match package version ${pkg.version}`)
+            console.log(`ref ${ref || "(none)"} (${process.env.GITHUB_EVENT_NAME})`)
+            if (isRelease && ref !== `v${pkg.version}` && ref !== pkg.version) {
+              console.error(`release tag ${ref} does not match package version ${pkg.version}`)
               process.exit(1)
             }
             if (!pkg.dsh?.bundle?.patch) {
               console.error("package.json declares no dsh.bundle — the market cannot install it")
               process.exit(1)
             }
+            console.log("manifest is consistent")
           '
 
       - name: Inspect the tarball contents
