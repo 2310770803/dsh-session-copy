@@ -1,10 +1,17 @@
 {
   "name": "dsh-session-copy",
   "version": "1.1.0",
-  "private": true,
   "type": "module",
   "description": "One copy button in the session header: deep link, whole conversation as Markdown, or the working directory. · 会话标题栏一键复制：深度链接、整段对话 Markdown、工作目录。",
   "icon": "./icon.svg",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/2310770803/dsh-session-copy.git"
+  },
+  "homepage": "https://github.com/2310770803/dsh-session-copy#readme",
+  "bugs": {
+    "url": "https://github.com/2310770803/dsh-session-copy/issues"
+  },
   "license": "MIT",
   "main": "src/index.js",
   "exports": {
@@ -18,6 +25,7 @@
   "files": [
     "cordis.patch.yml",
     "icon.svg",
+    "README.md",
     "locale",
     "lib/client.js",
     "src/**/*.js"
