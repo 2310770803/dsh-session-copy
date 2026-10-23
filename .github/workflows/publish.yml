@@ -7,12 +7,20 @@ name: Publish to npm
 # entries that resolve to a published npm package. Publishing here is what
 # turns the GitHub repository into a market-listed plugin.
 #
-# Publishing needs an npm token that a repository secret cannot grant by
-# itself: create a granular automation token at
-# https://www.npmjs.com/settings/~/tokens and store it as the NPM_TOKEN secret
-# of this repository (Settings -> Secrets and variables -> Actions). Until it
-# exists, this workflow fails at `npm publish` with ENEEDAUTH and nothing else
-# breaks.
+# Two ways to authenticate, neither of which this repository can grant itself:
+#
+#   Trusted publishing (preferred, no secret at all). Configure a trusted
+#   publisher on npmjs.com for this repository + this workflow filename, then
+#   set the repository variable NPM_TRUSTED_PUBLISHING to true. npm mints a
+#   short-lived OIDC token per run, so there is nothing long-lived to leak.
+#
+#   A granular access token stored as the NPM_TOKEN secret. npm stopped issuing
+#   classic tokens in November 2025, so this has to be a granular token with
+#   read/write package permission and "Bypass 2FA" checked (that flag is
+#   unchecked by default and publishing from CI needs it).
+#
+# With neither configured the job skips the publish step and says so, rather
+# than failing a release for a reason unrelated to the code.
 
 on:
   release:
@@ -26,6 +34,9 @@ on:
 
 permissions:
   contents: write
+  # Needed for trusted publishing: lets the run request an OIDC identity token
+  # that npm exchanges for a short-lived publish credential.
+  id-token: write
 
 jobs:
   publish:
@@ -81,23 +92,40 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # Without a token this would fail every release and leave a red X on the
-      # tag for a reason that has nothing to do with the code. Detect it first,
-      # so the job reports "skipped" until the secret exists instead of failing.
-      - name: Check for an npm token
-        id: token
+      # Publishing is attempted when either credential path is configured:
+      # a trusted publisher (no secret; npm mints a token via OIDC) or the
+      # NPM_TOKEN secret. Neither being present is a configuration gap, not a
+      # code failure, so it reports skipped instead of red.
+      - name: Check for an npm credential
+        id: credential
         run: |
-          if [ -n "${NPM_TOKEN}" ]; then
+          if [ "${TRUSTED}" = "true" ] || [ -n "${NPM_TOKEN}" ]; then
             echo "present=true" >> "$GITHUB_OUTPUT"
           else
             echo "present=false" >> "$GITHUB_OUTPUT"
-            echo "::notice title=npm publish skipped::No NPM_TOKEN secret. Add one at Settings -> Secrets and variables -> Actions to publish releases to npm."
+            echo "::notice title=npm publish skipped::No npm credential. Configure a trusted publisher on npmjs.com and set the repository variable NPM_TRUSTED_PUBLISHING=true, or add an NPM_TOKEN secret (granular token, Bypass 2FA checked)."
           fi
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          TRUSTED: ${{ vars.NPM_TRUSTED_PUBLISHING }}
 
       - name: Publish
-        if: steps.token.outputs.present == 'true' && (github.event_name == 'release' || inputs.dry-run != true)
+        if: steps.credential.outputs.present == 'true' && (github.event_name == 'release' || inputs.dry-run != true)
         run: npm publish --access public
         env:
+          # A granular token path. Empty under trusted publishing, where the npm
+          # CLI detects the OIDC environment and authenticates before falling
+          # back to any token.
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      # Confirms the publish landed, so a silent no-op is visible in the run.
+      - name: Verify the release is on npm
+        if: steps.credential.outputs.present == 'true' && github.event_name == 'release'
+        run: |
+          sleep 5
+          # Read the version from the manifest, not from the tag: the tag is
+          # v1.1.1 and the registry key is 1.1.1.
+          name="$(node -p 'require("./package.json").name')"
+          version="$(node -p 'require("./package.json").version')"
+          npm view "${name}@${version}" version \
+            || echo "::warning title=not visible yet::npm accepted the publish but ${name}@${version} is not readable yet; the registry can lag a few minutes."
