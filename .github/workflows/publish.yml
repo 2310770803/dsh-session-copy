@@ -79,6 +79,9 @@ jobs:
             console.log("npm CLI is new enough for OIDC publishing")
           '
 
+      - name: Check the injected stylesheet is well-formed
+        run: node scripts/check-stylesheet.mjs
+
       - name: Verify the manifest matches the release tag
         id: manifest
         run: |
