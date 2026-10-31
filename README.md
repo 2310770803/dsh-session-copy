@@ -8,7 +8,7 @@ English | [中文](README.zh.md)
 [![publish](https://img.shields.io/github/actions/workflow/status/2310770803/dsh-session-copy/publish.yml?style=flat-square&label=publish)](../../actions/workflows/publish.yml)
 [![SLSA](https://img.shields.io/badge/SLSA-provenance-brightgreen?style=flat-square)](https://registry.npmjs.org/-/npm/v1/attestations/dsh-session-copy@latest)
 
-![One button in the session header, three actions behind it](https://raw.githubusercontent.com/2310770803/dsh-session-copy/main/assets/demo.png)
+![One button in the session header, four actions behind it](https://raw.githubusercontent.com/2310770803/dsh-session-copy/main/assets/demo.png)
 
 One button in the DSH Web session header. Click it and pick what to copy —
 **deep link**, **whole conversation as Markdown**, **only the messages you tick**,
