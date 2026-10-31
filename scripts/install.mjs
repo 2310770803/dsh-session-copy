@@ -344,15 +344,33 @@ function check(options) {
     note(!(Array.isArray(bundles) && bundles.includes(name)), `no leftover ${name} bundle entry`);
   }
 
-  // A physical @deepseek-ai/dsh* copy inside the profile shadows the built-ins
-  // and is the documented way this class of plugin bricks a boot.
+  // A physical @deepseek-ai/dsh* copy inside the profile shadows the built-ins.
+  // For the packages this plugin talks to that is fatal: two copies of
+  // `dsh-session-query` or `dsh-host-webserver` mean two service containers and
+  // the plugin resolves a service the Host never populated. So the check fails
+  // only on this plugin's own peers.
+  //
+  // Any other @deepseek-ai/dsh* package in the profile is ordinary: the
+  // `@deepseek-ai/dsh-*` packages are published on npm too, and an unrelated
+  // plugin may legitimately depend on one (observing `dsh-home-paths` pulled in
+  // by another plugin is not a fault of this one). Those are reported as
+  // information, never as a failure, so this check stays actionable.
   const shadowRoot = join(profileDir, 'node_modules', '@deepseek-ai');
+  const installedManifestPath = join(installDir, 'package.json');
+  const installedManifest = existsSync(installedManifestPath) ? readJson(installedManifestPath) : {};
+  const peers = Object.keys(installedManifest.peerDependencies ?? {})
+    .map((name) => name.replace(/^@deepseek-ai\//u, ''));
   if (existsSync(shadowRoot)) {
-    const shadowed = readdirSync(shadowRoot).filter((name) => name.startsWith('dsh'));
-    note(shadowed.length === 0, 'no shadowing @deepseek-ai/dsh* copy in the profile',
-      shadowed.length === 0 ? undefined : shadowed.join(', '));
+    const present = readdirSync(shadowRoot).filter((name) => name.startsWith('dsh'));
+    const shadowedPeers = present.filter((name) => peers.includes(name));
+    note(shadowedPeers.length === 0, 'no shadowing copy of this plugin\'s @deepseek-ai/dsh* peers',
+      shadowedPeers.length === 0 ? undefined : shadowedPeers.join(', '));
+    const others = present.filter((name) => !peers.includes(name));
+    if (others.length > 0) {
+      lines.push(`info  other @deepseek-ai/dsh* packages in the profile (another plugin's dependency, harmless here) — ${others.join(', ')}`);
+    }
   } else {
-    note(true, 'no shadowing @deepseek-ai/dsh* copy in the profile');
+    note(true, 'no shadowing copy of this plugin\'s @deepseek-ai/dsh* peers');
   }
 
   note(existsSync(home), 'DSH home', home);

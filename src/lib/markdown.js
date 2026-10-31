@@ -48,6 +48,18 @@ function isRecord(value) {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
 
+/**
+ * The event's log sequence number, when the Host supplied one.
+ *
+ * Items carry it so a selection made in the browser can name a message without
+ * relying on array position — positions shift if a future release starts
+ * emitting a kind of item this build does not know about.
+ */
+function seqOf(event) {
+  const seq = isRecord(event) ? event.seq : undefined;
+  return typeof seq === 'number' && Number.isInteger(seq) ? seq : null;
+}
+
 /** Join the visible `text` blocks of one message body. */
 function textOf(content) {
   if (!Array.isArray(content)) return '';
@@ -158,7 +170,7 @@ export function extractConversation(events) {
       const data = isRecord(raw.data) ? raw.data : undefined;
       const text = textOf(data === undefined ? undefined : data.summary);
       if (text !== '') {
-        items.push({ role: 'checkpoint', text: excerpt(text), kind: 'compaction' });
+        items.push({ role: 'checkpoint', text: excerpt(text), kind: 'compaction', seq: seqOf(raw) });
         stats.checkpoints++;
       } else {
         stats.skipped++;
@@ -178,7 +190,7 @@ export function extractConversation(events) {
       if (CHECKPOINT_KINDS.has(kind)) {
         const text = textOf(data === undefined ? undefined : data.content);
         if (text !== '') {
-          items.push({ role: 'checkpoint', text: excerpt(text), kind });
+          items.push({ role: 'checkpoint', text: excerpt(text), kind, seq: seqOf(raw) });
           stats.checkpoints++;
         } else {
           stats.skipped++;
@@ -190,7 +202,7 @@ export function extractConversation(events) {
         continue;
       }
       const text = textOf(data === undefined ? undefined : data.content);
-      items.push({ role: 'user', text: text !== '' ? text : IMAGE_OMITTED_PLACEHOLDER });
+      items.push({ role: 'user', text: text !== '' ? text : IMAGE_OMITTED_PLACEHOLDER, seq: seqOf(raw) });
       stats.humanMessages++;
       continue;
     }
@@ -208,7 +220,7 @@ export function extractConversation(events) {
         continue;
       }
       // Every step, not just the final one: an agentic turn has many.
-      items.push({ role: 'assistant', text });
+      items.push({ role: 'assistant', text, seq: seqOf(raw) });
       stats.assistantMessages++;
       continue;
     }
@@ -272,11 +284,99 @@ function inlineCode(value) {
   return `\`${String(value).replace(/`/gu, '\u2019')}\``;
 }
 
+/** How much of one message the selection picker shows per row. */
+export const PREVIEW_CHARACTERS = 200;
+
+/**
+ * A single-line, length-bounded preview of one message.
+ *
+ * Newlines and runs of spaces are collapsed so a row keeps a predictable height;
+ * the picker is a list of hundreds of rows and ragged multi-line rows are
+ * unreadable.
+ *
+ * @param {unknown} text
+ * @param {number} [limit]
+ * @returns {string}
+ */
+export function previewOf(text, limit = PREVIEW_CHARACTERS) {
+  const flat = String(text ?? '').replace(/\s+/gu, ' ').trim();
+  const characters = Array.from(flat);
+  if (characters.length <= limit) return flat;
+  return `${characters.slice(0, limit).join('').trimEnd()}…`;
+}
+
+/**
+ * Describe the extracted items for the selection picker.
+ *
+ * `index` is the value the browser sends back in `selection`; it is the position
+ * in `items`, which is stable for one extraction.
+ *
+ * @param {object[]} items
+ * @param {{limit?: number}} [options]
+ * @returns {{index: number, role: string, seq: number|null, characters: number, preview: string}[]}
+ */
+export function describeItems(items, options = {}) {
+  const limit = options.limit ?? PREVIEW_CHARACTERS;
+  const list = Array.isArray(items) ? items : [];
+  return list.map((item, index) => ({
+    index,
+    role: typeof item.role === 'string' ? item.role : 'unknown',
+    seq: typeof item.seq === 'number' ? item.seq : null,
+    characters: typeof item.text === 'string' ? item.text.length : 0,
+    preview: previewOf(item.text, limit),
+  }));
+}
+
+/**
+ * Apply a validated selection to the extracted items.
+ *
+ * Indices are the only thing trusted; anything outside the item range, repeated,
+ * or not an integer is dropped rather than allowed to shift the result. A
+ * caller that asked for something invalid still gets the valid part back and can
+ * see how many entries were discarded.
+ *
+ * @param {object[]} items
+ * @param {unknown} selection - array of item indices, or undefined for "all".
+ * @returns {{items: object[], requested: number, applied: number, dropped: number, all: boolean}}
+ */
+export function pickItems(items, selection) {
+  const list = Array.isArray(items) ? items : [];
+  if (selection === undefined || selection === null) {
+    return { items: list.slice(), requested: list.length, applied: list.length, dropped: 0, all: true };
+  }
+  if (!Array.isArray(selection)) {
+    return { items: [], requested: 0, applied: 0, dropped: 0, all: false, invalid: 'selection must be an array of indices' };
+  }
+  const wanted = new Set();
+  let dropped = 0;
+  for (const value of selection) {
+    if (typeof value !== 'number' || !Number.isInteger(value) || value < 0 || value >= list.length) {
+      dropped++;
+      continue;
+    }
+    wanted.add(value);
+  }
+  const flown = [...wanted].sort((a, b) => a - b);
+  return {
+    items: flown.map((index) => list[index]),
+    requested: selection.length,
+    applied: flown.length,
+    dropped,
+    all: false,
+  };
+}
+
 /**
  * Render the extracted conversation as Markdown.
  *
- * @param {object[]} items - extraction output.
- * @param {{title?: string|null, sessionId?: string|null, cwd?: string|null, truncated?: boolean}} meta
+ * @param {object[]} items - extraction output (already narrowed to a selection, if any).
+ * @param {{
+ *   title?: string|null,
+ *   sessionId?: string|null,
+ *   cwd?: string|null,
+ *   truncated?: boolean,
+ *   partial?: {selected: number, total: number} | null,
+ * }} meta
  * @returns {string}
  */
 export function renderConversation(items, meta = {}) {
@@ -292,6 +392,12 @@ export function renderConversation(items, meta = {}) {
   if (typeof meta.cwd === 'string' && meta.cwd !== '') {
     metaLines.push(`> Working directory: ${inlineCode(meta.cwd)}`);
   }
+  // A selection is a deliberate excerpt, so the document says so up front —
+  // otherwise a pasted fragment is indistinguishable from a truncated export.
+  const partial = meta.partial;
+  if (isRecord(partial) && Number.isInteger(partial.selected) && Number.isInteger(partial.total)) {
+    metaLines.push(`> Excerpt: ${partial.selected} of ${partial.total} messages selected`);
+  }
   if (metaLines.length > 0) headerLines.push(...metaLines, '');
 
   const sections = [];
@@ -302,7 +408,12 @@ export function renderConversation(items, meta = {}) {
   }
 
   if (sections.length === 0) {
-    headerLines.push('> _This session has no messages yet._', '');
+    // An empty excerpt is not an empty session: saying the wrong one makes a
+    // failed selection look like lost history.
+    headerLines.push(
+      isRecord(partial) ? '> _No messages were selected._' : '> _This session has no messages yet._',
+      '',
+    );
     return `${headerLines.join('\n')}\n`;
   }
 

@@ -26,8 +26,8 @@
         "zh": "会话复制菜单"
       },
       "description": {
-        "en": "Adds one copy button to the session header. Click it for three actions: copy a deep link (an @-mention any DSH session can use to reference and read this conversation), copy the whole conversation as Markdown, or copy the working directory.",
-        "zh": "在会话标题栏提供一个复制按钮，点开就是三项操作：复制深度链接（一段 @ 提及，任何会话都能据此引用并读取这次对话）、复制整段对话为 Markdown、复制当前工作目录。"
+        "en": "Adds one copy button to the session header. Click it to copy a deep link (an @-mention any DSH session can use to reference and read this conversation), the whole conversation as Markdown, only the messages you pick, or the working directory.",
+        "zh": "在会话标题栏提供一个复制按钮，点开就能复制：深度链接（一段 @ 提及，任何会话都能据此引用并读取这次对话）、整段对话 Markdown、只复制勾选的消息、当前工作目录。"
       },
       "icon": "https://raw.githubusercontent.com/2310770803/dsh-session-copy/main/assets/icon-180.png",
       "author": "2310770803",
@@ -51,12 +51,12 @@
       },
       "versions": [
         {
-          "version": "1.2.0",
-          "publishTimestamp": 1792732385,
+          "version": "1.3.0",
+          "publishTimestamp": 1792733938,
           "source": {
             "type": "git",
             "url": "https://github.com/2310770803/dsh-session-copy",
-            "commit": "af618477c7a06195885e018968a2e7c93855ccd6"
+            "commit": "3b59e291c42cf87b1d294281ff2db43f89fcecf7"
           },
           "engines": {
             "dsh": ">=0.2.0-rc.2 <0.2.1 || >=0.2.1-rc.1 <0.3.0-0 || >=0.3.0-rc.1 <1.0.0-0"

@@ -10,9 +10,9 @@ English | [中文](README.zh.md)
 
 ![One button in the session header, three actions behind it](https://raw.githubusercontent.com/2310770803/dsh-session-copy/main/assets/demo.png)
 
-One button in the DSH Web session header. Click it and pick one of three things to
-copy — **deep link**, **whole conversation as Markdown**, or **working directory**.
-No more row of flat buttons competing with the toolbar.
+One button in the DSH Web session header. Click it and pick what to copy —
+**deep link**, **whole conversation as Markdown**, **only the messages you tick**,
+or **working directory**. No more row of flat buttons competing with the toolbar.
 
 ---
 
@@ -20,8 +20,8 @@ No more row of flat buttons competing with the toolbar.
 
 The session header is a crowded strip of icon buttons, and copying a conversation
 out of DSH used to mean three of them. This plugin folds the three into one
-28-pixel button whose menu carries the same three actions, so the header gains
-nothing but a single icon.
+28-pixel button whose menu carries the same actions, so the header gains nothing
+but a single icon.
 
 The one that actually takes work is **Markdown**. A session log is not a chat
 transcript: it is a stream of tool calls, retries, pruned rows, injected context
@@ -34,11 +34,32 @@ conversation from that stream on the Host side and hands back clean Markdown.
 | --- | --- |
 | **Copy deep link** | `@[title](dsh-session:<base64url(session id)>)` — the canonical DSH session mention. Paste it into any composer and the Host attaches that session's snapshot, so another conversation can read this one. |
 | **Copy as Markdown** | The whole conversation as clean Markdown: one section per message, every assistant step kept, tool output and reasoning folded away, compaction points marked, code fences balanced. |
+| **Copy selected messages…** | Opens a picker listing every message; tick the ones you want and only those are copied — the QQ/WeChat multi-select gesture. |
 | **Copy working directory** | The session's `cwd`, read from the Session list projection with the Host snapshot as fallback. |
 
 Every action reports back in a small notice — including the character count on a
 Markdown copy, so you can tell a 400-character session from a 400,000-character
 one before you paste it somewhere.
+
+## Picking only part of a conversation
+
+A long session usually has one stretch worth sharing: the debugging thread, the
+decision, the answer. **Copy selected messages…** opens a list of every message
+with its role, a one-line preview and its size, and copies only what you tick.
+
+![The message picker: every message with a checkbox, a filter box, select-all and a live counter](https://raw.githubusercontent.com/2310770803/dsh-session-copy/main/assets/picker.png)
+
+- **Filter** narrows hundreds of rows to the ones you are after; **Select all**
+  applies to what the filter currently shows, so "everything about the parser" is
+  two clicks.
+- The counter tracks the selection, and the copied document opens with
+  `> Excerpt: 12 of 340 messages selected`, so a pasted fragment is never
+  mistaken for a truncated export.
+- The picker lists what the model still holds: compaction checkpoints appear as
+  their own rows, so an intentional summary can be included or left out on
+  purpose.
+- Selecting is local to the dialog — nothing is copied until you press
+  **Copy selected**, and Escape closes it.
 
 ## Install
 
@@ -102,6 +123,11 @@ inside a fenced code block used to get a synthetic closing fence, which left the
 *next* message's fences mismatched; one 21 KB export came out with 34 stray fence
 markers. Fences are tracked over the assembled document so what you paste renders
 as written.
+
+**A selection is trusted only as indices.** The picker sends back the positions it
+showed; the Host drops anything out of range, repeated or non-integer rather than
+letting it shift the result onto a different message, and reports how many were
+discarded. A transcript can then never silently paste someone else's turn.
 
 Reading is also bounded and version-tolerant:
 

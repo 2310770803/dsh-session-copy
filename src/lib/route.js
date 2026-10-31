@@ -18,10 +18,22 @@
  * item, never the application.
  */
 
-import { clampMarkdown, extractConversation, renderConversation } from './markdown.js';
+import {
+  clampMarkdown,
+  describeItems,
+  extractConversation,
+  pickItems,
+  renderConversation,
+} from './markdown.js';
 
 export const SESSION_COPY_PATH = '/api/session-copy.snapshot';
-export const MAX_REQUEST_BYTES = 4096;
+
+/**
+ * Upper bound on the request body. A Markdown request is a session id; a
+ * selection is a session id plus one integer per checked message, and a long
+ * session can have several hundred of them, so 4 KiB is not enough.
+ */
+export const MAX_REQUEST_BYTES = 131072;
 
 /**
  * Upper bound on the Markdown handed to the browser. A real session produced
@@ -219,6 +231,14 @@ export function createSessionSnapshotHandler({
       if (typeof sessionId !== 'string' || sessionId === '') {
         throw new RequestBoundaryError(400, 'sessionId is required');
       }
+      const mode = isRecord(value) && typeof value.mode === 'string' ? value.mode : 'markdown';
+      if (mode !== 'markdown' && mode !== 'entries') {
+        throw new RequestBoundaryError(400, 'mode must be "markdown" or "entries"');
+      }
+      const selection = isRecord(value) ? value.selection : undefined;
+      if (selection !== undefined && selection !== null && !Array.isArray(selection)) {
+        throw new RequestBoundaryError(400, 'selection must be an array of message indices');
+      }
 
       const { snapshot, source } = await read(sessionId);
       const events = eventsOf(snapshot);
@@ -228,7 +248,29 @@ export function createSessionSnapshotHandler({
         ?? (typeof headerOf(snapshot)?.title === 'string' && headerOf(snapshot).title !== ''
           ? headerOf(snapshot).title
           : null);
-      const full = renderConversation(items, { title: resolvedTitle, sessionId, cwd });
+
+      // The picker asks what it may choose from; it sends its choice back here.
+      if (mode === 'entries') {
+        writeJson(response, 200, {
+          ok: true,
+          sessionId,
+          title: resolvedTitle,
+          cwd,
+          source,
+          total: items.length,
+          entries: describeItems(items),
+          stats,
+        });
+        return;
+      }
+
+      const picked = pickItems(items, selection);
+      const full = renderConversation(picked.items, {
+        title: resolvedTitle,
+        sessionId,
+        cwd,
+        partial: picked.all ? null : { selected: picked.applied, total: items.length },
+      });
       const clamped = clampMarkdown(full, maxCharacters);
 
       writeJson(response, 200, {
@@ -240,7 +282,10 @@ export function createSessionSnapshotHandler({
         characters: clamped.markdown.length,
         truncated: clamped.truncated,
         source,
-        messages: items.length,
+        messages: picked.items.length,
+        total: items.length,
+        selected: picked.all ? null : picked.applied,
+        dropped: picked.dropped,
         stats,
       });
     } catch (error) {
