@@ -30,21 +30,37 @@ conversation from that stream on the Host side and hands back clean Markdown.
 
 ## What you get
 
-| Menu item | What lands on the clipboard |
+| Menu item | What you get |
 | --- | --- |
 | **Copy deep link** | `@[title](dsh-session:<base64url(session id)>)` — the canonical DSH session mention. Paste it into any composer and the Host attaches that session's snapshot, so another conversation can read this one. |
-| **Copy as Markdown** | The whole conversation as clean Markdown: one section per message, every assistant step kept, tool output and reasoning folded away, compaction points marked, code fences balanced. |
-| **Copy selected messages…** | Opens a picker listing every message; tick the ones you want and only those are copied — the QQ/WeChat multi-select gesture. |
+| **Copy Markdown** | The whole conversation as clean Markdown on the clipboard: one section per message, every assistant step kept, tool output and reasoning folded away, compaction points marked, code fences balanced. |
+| **Export Markdown file** | The same document saved as a `.md` file. Use this for anything long — a clipboard write is the part that fails first, and the file has no length cap. |
+| **Select messages…** | Opens a timeline picker; tick the messages you want and copy or export only those — the QQ/WeChat multi-select gesture. |
 | **Copy working directory** | The session's `cwd`, read from the Session list projection with the Host snapshot as fallback. |
 
-Every action reports back in a small notice — including the character count on a
-Markdown copy, so you can tell a 400-character session from a 400,000-character
-one before you paste it somewhere.
+Every action reports back in a small notice — including the character count, so
+you can tell a 400-character session from a 400,000-character one.
+
+## Why there is a file export
+
+A clipboard write is the weakest link in "copy the whole conversation": browsers
+cap or refuse a single write of a few hundred kilobytes, and a silent truncation
+looks like the plugin lost your history. Measured on a real 4.3 MB session log:
+
+| | Characters | Complete? |
+| --- | --- | --- |
+| Clipboard copy (capped) | 212,330 | no — trimmed at the cap |
+| File export | 778,435 | yes |
+
+So the clipboard action keeps its cap and says when it trims, while the export
+action asks the Host to lift it (8,000,000 characters, still finite so a corrupt
+log cannot exhaust memory) and hands you the file. The picker has the same pair
+of buttons: **Copy selected** and **Export selected to file**.
 
 ## Picking only part of a conversation
 
 A long session usually has one stretch worth sharing: the debugging thread, the
-decision, the answer. **Copy selected messages…** opens a list of every message
+decision, the answer. **Select messages…** opens a timeline of every message
 with its role, a one-line preview and its size, and copies only what you tick.
 
 ![The message picker: a timeline rail, turns with sticky headers, per-message times, role chips and a live size meter](https://raw.githubusercontent.com/2310770803/dsh-session-copy/main/assets/picker.png)

@@ -42,6 +42,16 @@ export const MAX_REQUEST_BYTES = 131072;
  */
 export const MAX_MARKDOWN_CHARACTERS = 220_000;
 
+/**
+ * Upper bound for a document that is being saved to a file rather than pasted.
+ *
+ * The clipboard cap exists because a single clipboard write of several hundred
+ * kilobytes is unreliable; a file has no such problem, and "export the whole
+ * conversation" is exactly the case where a cap is least welcome. The bound
+ * stays finite so a corrupt log cannot exhaust the Host's memory.
+ */
+export const MAX_FILE_CHARACTERS = 8_000_000;
+
 class RequestBoundaryError extends Error {
   constructor(status, message) {
     super(message);
@@ -236,6 +246,9 @@ export function createSessionSnapshotHandler({
         throw new RequestBoundaryError(400, 'mode must be "markdown" or "entries"');
       }
       const selection = isRecord(value) ? value.selection : undefined;
+      // A save-to-file request keeps the whole document; a clipboard copy stays
+      // bounded, because one clipboard write of a very long string fails.
+      const unclamped = isRecord(value) && value.unclamped === true;
       if (selection !== undefined && selection !== null && !Array.isArray(selection)) {
         throw new RequestBoundaryError(400, 'selection must be an array of message indices');
       }
@@ -271,7 +284,7 @@ export function createSessionSnapshotHandler({
         cwd,
         partial: picked.all ? null : { selected: picked.applied, total: items.length },
       });
-      const clamped = clampMarkdown(full, maxCharacters);
+      const clamped = clampMarkdown(full, unclamped ? MAX_FILE_CHARACTERS : maxCharacters);
 
       writeJson(response, 200, {
         ok: true,
@@ -285,6 +298,7 @@ export function createSessionSnapshotHandler({
         messages: picked.items.length,
         total: items.length,
         selected: picked.all ? null : picked.applied,
+        unclamped,
         dropped: picked.dropped,
         stats,
       });
