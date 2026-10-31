@@ -60,6 +60,30 @@ function seqOf(event) {
   return typeof seq === 'number' && Number.isInteger(seq) ? seq : null;
 }
 
+/**
+ * The event's wall-clock time in epoch milliseconds.
+ *
+ * Every transcript event in format v4 carries one; the picker uses it to show
+ * when a message was said and to range a turn.
+ */
+function timeOf(event) {
+  const time = isRecord(event) ? event.time : undefined;
+  return typeof time === 'number' && Number.isFinite(time) ? time : null;
+}
+
+/**
+ * The turn an event declares, when it declares one.
+ *
+ * `turn/start` and `assistant/message` carry `data.turn`; `user/message` does
+ * not, which is why the extraction tracks the current turn instead of reading it
+ * off every record.
+ */
+function turnOf(event) {
+  const data = isRecord(event) ? event.data : undefined;
+  const turn = data === undefined ? undefined : data.turn;
+  return typeof turn === 'number' && Number.isInteger(turn) ? turn : null;
+}
+
 /** Join the visible `text` blocks of one message body. */
 function textOf(content) {
   if (!Array.isArray(content)) return '';
@@ -144,6 +168,9 @@ export function extractConversation(events) {
 
   const items = [];
   let title = null;
+  // The turn most recently opened by `turn/start` or asserted by an assistant
+  // message. Items inherit it, because `user/message` does not carry one.
+  let currentTurn = null;
 
   for (const raw of Array.isArray(events) ? events : []) {
     stats.events++;
@@ -160,6 +187,8 @@ export function extractConversation(events) {
     }
     if (type === 'turn/start') {
       stats.turns++;
+      const declared = turnOf(raw);
+      if (declared !== null) currentTurn = declared;
       continue;
     }
     if (type === 'turn/end') continue;
@@ -170,7 +199,14 @@ export function extractConversation(events) {
       const data = isRecord(raw.data) ? raw.data : undefined;
       const text = textOf(data === undefined ? undefined : data.summary);
       if (text !== '') {
-        items.push({ role: 'checkpoint', text: excerpt(text), kind: 'compaction', seq: seqOf(raw) });
+        items.push({
+          role: 'checkpoint',
+          text: excerpt(text),
+          kind: 'compaction',
+          seq: seqOf(raw),
+          time: timeOf(raw),
+          turn: currentTurn,
+        });
         stats.checkpoints++;
       } else {
         stats.skipped++;
@@ -190,7 +226,14 @@ export function extractConversation(events) {
       if (CHECKPOINT_KINDS.has(kind)) {
         const text = textOf(data === undefined ? undefined : data.content);
         if (text !== '') {
-          items.push({ role: 'checkpoint', text: excerpt(text), kind, seq: seqOf(raw) });
+          items.push({
+            role: 'checkpoint',
+            text: excerpt(text),
+            kind,
+            seq: seqOf(raw),
+            time: timeOf(raw),
+            turn: currentTurn,
+          });
           stats.checkpoints++;
         } else {
           stats.skipped++;
@@ -202,7 +245,13 @@ export function extractConversation(events) {
         continue;
       }
       const text = textOf(data === undefined ? undefined : data.content);
-      items.push({ role: 'user', text: text !== '' ? text : IMAGE_OMITTED_PLACEHOLDER, seq: seqOf(raw) });
+      items.push({
+        role: 'user',
+        text: text !== '' ? text : IMAGE_OMITTED_PLACEHOLDER,
+        seq: seqOf(raw),
+        time: timeOf(raw),
+        turn: currentTurn,
+      });
       stats.humanMessages++;
       continue;
     }
@@ -219,8 +268,17 @@ export function extractConversation(events) {
         stats.skipped++;
         continue;
       }
+      // An assistant message names its own turn; trust it over the tracker.
+      const declaredTurn = turnOf(raw);
+      if (declaredTurn !== null) currentTurn = declaredTurn;
       // Every step, not just the final one: an agentic turn has many.
-      items.push({ role: 'assistant', text, seq: seqOf(raw) });
+      items.push({
+        role: 'assistant',
+        text,
+        seq: seqOf(raw),
+        time: timeOf(raw),
+        turn: currentTurn,
+      });
       stats.assistantMessages++;
       continue;
     }
@@ -322,6 +380,10 @@ export function describeItems(items, options = {}) {
     index,
     role: typeof item.role === 'string' ? item.role : 'unknown',
     seq: typeof item.seq === 'number' ? item.seq : null,
+    // `time` and `turn` drive the picker's timeline; both are null when the log
+    // was written by a Host that did not record them.
+    time: typeof item.time === 'number' ? item.time : null,
+    turn: typeof item.turn === 'number' ? item.turn : null,
     characters: typeof item.text === 'string' ? item.text.length : 0,
     preview: previewOf(item.text, limit),
   }));

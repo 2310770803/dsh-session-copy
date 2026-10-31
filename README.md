@@ -47,8 +47,14 @@ A long session usually has one stretch worth sharing: the debugging thread, the
 decision, the answer. **Copy selected messages…** opens a list of every message
 with its role, a one-line preview and its size, and copies only what you tick.
 
-![The message picker: role chips, per-message checkboxes, a filter box, a live size meter and keyboard hints](https://raw.githubusercontent.com/2310770803/dsh-session-copy/main/assets/picker.png)
+![The message picker: a timeline rail, turns with sticky headers, per-message times, role chips and a live size meter](https://raw.githubusercontent.com/2310770803/dsh-session-copy/main/assets/picker.png)
 
+- **Timeline.** The list is grouped by turn; each group has a sticky header with
+  the turn number, its time range and its size, and a rail down the left marks
+  every turn — click a marker to jump to it, and the active marker follows your
+  scrolling. Every row shows the time its message was sent.
+- **Whole turn** on a header ticks (or clears) every message in that exchange,
+  which is usually the unit you actually want.
 - **Role chips** — All / You / Assistant / Compaction — cut the list down to the
   side you want; only the roles actually present are offered.
 - **Filter** narrows hundreds of rows to the ones you are after. Both the filter
