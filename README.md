@@ -47,19 +47,27 @@ A long session usually has one stretch worth sharing: the debugging thread, the
 decision, the answer. **Copy selected messages…** opens a list of every message
 with its role, a one-line preview and its size, and copies only what you tick.
 
-![The message picker: every message with a checkbox, a filter box, select-all and a live counter](https://raw.githubusercontent.com/2310770803/dsh-session-copy/main/assets/picker.png)
+![The message picker: role chips, per-message checkboxes, a filter box, a live size meter and keyboard hints](https://raw.githubusercontent.com/2310770803/dsh-session-copy/main/assets/picker.png)
 
-- **Filter** narrows hundreds of rows to the ones you are after; **Select all**
-  applies to what the filter currently shows, so "everything about the parser" is
-  two clicks.
-- The counter tracks the selection, and the copied document opens with
-  `> Excerpt: 12 of 340 messages selected`, so a pasted fragment is never
-  mistaken for a truncated export.
+- **Role chips** — All / You / Assistant / Compaction — cut the list down to the
+  side you want; only the roles actually present are offered.
+- **Filter** narrows hundreds of rows to the ones you are after. Both the filter
+  and the chips scope **Select all**, so "every question I asked about the
+  parser" is one chip plus one word.
+- **Shift-click** selects a whole range, the way a chat app does, and a range
+  never escapes the current filter.
+- **Keyboard**: `Space` toggles the focused row, `↑`/`↓`/`Home`/`End` move
+  between rows, `Ctrl`/`⌘+A` ticks everything visible, `Escape` closes.
+- The meter reads `4 of 7 · 1,832 characters` — both the count and the size of
+  what you are about to paste.
+- The copied document opens with `> Excerpt: 12 of 340 messages selected`, so a
+  pasted fragment is never mistaken for a truncated export.
 - The picker lists what the model still holds: compaction checkpoints appear as
   their own rows, so an intentional summary can be included or left out on
   purpose.
 - Selecting is local to the dialog — nothing is copied until you press
-  **Copy selected**, and Escape closes it.
+  **Copy selected**, and reopening the picker for the same session is instant
+  because the list is fetched once.
 
 ## Install
 
