@@ -36,7 +36,7 @@ conversation from that stream on the Host side and hands back clean Markdown.
 | **Copy Markdown** | The whole conversation as clean Markdown on the clipboard: one section per message, every assistant step kept, tool output and reasoning folded away, compaction points marked, code fences balanced. |
 | **Export Markdown file** | The same document saved as a `.md` file. Use this for anything long — a clipboard write is the part that fails first, and the file has no length cap. |
 | **Select messages…** | Opens a timeline picker; tick the messages you want and copy or export only those — the QQ/WeChat multi-select gesture. |
-| **Copy working directory** | The session's `cwd`, read from the Session list projection with the Host snapshot as fallback. |
+| **Copy directory** | The session's `cwd`, read from the Session list projection with the Host snapshot as fallback. |
 
 Every action reports back in a small notice — including the character count, so
 you can tell a 400-character session from a 400,000-character one.
@@ -55,7 +55,7 @@ looks like the plugin lost your history. Measured on a real 4.3 MB session log:
 So the clipboard action keeps its cap and says when it trims, while the export
 action asks the Host to lift it (8,000,000 characters, still finite so a corrupt
 log cannot exhaust memory) and hands you the file. The picker has the same pair
-of buttons: **Copy selected** and **Export selected to file**.
+of buttons: **Copy** and **Export .md**.
 
 ## Picking only part of a conversation
 
@@ -91,7 +91,7 @@ with its role, a one-line preview and its size, and copies only what you tick.
   their own rows, so an intentional summary can be included or left out on
   purpose.
 - Selecting is local to the dialog — nothing is copied until you press
-  **Copy selected**, and reopening the picker for the same session is instant
+  **Copy**, and reopening the picker for the same session is instant
   because the list is fetched once.
 
 ## Install
