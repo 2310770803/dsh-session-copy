@@ -161,12 +161,17 @@ discarded. A transcript can then never silently paste someone else's turn.
 
 Reading is also bounded and version-tolerant:
 
-- `sessionQuery.readSurface` (the **current model surface**) is preferred over
-  `readSession` (the complete raw log including rows `compaction/prune` has
-  shadowed), and falls back to `readSession` if the surface cannot be folded.
-- The response is capped at 220,000 characters and trimmed on a section
-  boundary, because one real session produced a 434 KB document — past what a
-  single clipboard write reliably accepts.
+- **The complete history is read, not the model's current view.**
+  `sessionQuery.readSession` (the whole raw log) is the source;
+  `readSurface` — what the model currently sees — is only the fallback. This
+  matters because a compaction *replaces* everything before it: the surface has
+  no pre-compaction turns at all. On one real session the surface held 247
+  messages across turns 14–22, while the log held 398 across turns 1–22 plus the
+  four compaction markers.
+- The response is capped at 220,000 characters for a clipboard copy and trimmed
+  on a section boundary, because one real session produced a 778 KB document —
+  past what a single clipboard write reliably accepts. A file export lifts the
+  cap instead (see [Why there is a file export](#why-there-is-a-file-export)).
 - Clipboard writes try the Host writer, then the `textarea` + `execCommand` path
   (the one that survives long text and a blurred window), then the async
   Clipboard API, twice. DSH's own bundled writer returns `false` as soon as

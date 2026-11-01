@@ -194,23 +194,33 @@ export function createSessionSnapshotHandler({
   maxCharacters = MAX_MARKDOWN_CHARACTERS,
 }) {
   /**
-   * Prefer the current model surface; fall back to the raw log if the surface
-   * cannot be folded (older release, or a log the strict surface validator
-   * rejects). The fallback is what makes this resilient across DSH versions.
+   * Read the **complete** history: the raw log first, the model surface only as
+   * a fallback.
+   *
+   * `readSurface` folds the log down to what the model currently sees, and
+   * compaction replaces whole ranges — a `compaction/summary` (or the
+   * `compact-checkpoint` user message carrying it) declares
+   * `surfaceOp: {op:'replace', startSeq, endSeq}` over everything before it. So
+   * the surface legitimately has *no* pre-compaction turns, which is right for a
+   * model and wrong for a transcript: measured on one real session, the surface
+   * held 247 messages across turns 14–22 while the log held 394 across turns
+   * 1–22 plus the four compaction markers.
+   *
+   * The fallback direction is therefore reversed from the obvious one: the
+   * surface is used only when the raw log cannot be read or replayed.
    */
   const read = async (sessionId) => {
-    if (typeof readSurface === 'function') {
+    try {
+      return { snapshot: await readSession(sessionId), source: 'log' };
+    } catch (error) {
       try {
-        return { snapshot: await readSurface(sessionId), source: 'surface' };
-      } catch (error) {
-        try {
-          onError(error);
-        } catch {
-          /* logging must not mask the fallback */
-        }
+        onError(error);
+      } catch {
+        /* logging must not mask the fallback */
       }
+      if (typeof readSurface !== 'function') throw error;
+      return { snapshot: await readSurface(sessionId), source: 'surface' };
     }
-    return { snapshot: await readSession(sessionId), source: 'log' };
   };
 
   return async (request, response) => {

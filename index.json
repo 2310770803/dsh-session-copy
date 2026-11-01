@@ -51,12 +51,12 @@
       },
       "versions": [
         {
-          "version": "1.6.0",
-          "publishTimestamp": 1793425965,
+          "version": "1.6.1",
+          "publishTimestamp": 1793426422,
           "source": {
             "type": "git",
             "url": "https://github.com/2310770803/dsh-session-copy",
-            "commit": "739660c7c644248c3fb724f0b80c91e2045331d4"
+            "commit": "d6659b7cd5b517ab24a10ef909b5e239d8c547cb"
           },
           "engines": {
             "dsh": ">=0.2.0-rc.2 <0.2.1 || >=0.2.1-rc.1 <0.3.0-0 || >=0.3.0-rc.1 <1.0.0-0"

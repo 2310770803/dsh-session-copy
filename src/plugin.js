@@ -72,8 +72,10 @@ export function apply(ctx) {
         };
 
         const handler = createSessionSnapshotHandler({
-          // The raw, replay-validated log. Kept as the fallback: it always
-          // exists, even where the surface fold is unavailable or rejects a log.
+          // The raw, replay-validated log — the complete history, and therefore
+          // the primary source. The model surface is *not* a transcript: after a
+          // compaction it has no pre-compaction turns at all, because the
+          // compaction replaces that whole range.
           readSession: (sessionId) => {
             const service = query();
             if (typeof service.readSession !== 'function') {
@@ -85,10 +87,8 @@ export function apply(ctx) {
             }
             return service.readSession(sessionId);
           },
-          // The current model surface: the events the model itself still holds,
-          // with compaction-shadowed rows already folded away. Preferred, so a
-          // long or repeatedly compacted session exports what the model sees
-          // rather than the whole pre-compaction log.
+          // The current model surface: only what the model still holds. Used
+          // when the raw log cannot be read, never in preference to it.
           readSurface: (sessionId) => {
             const service = query();
             if (typeof service.readSurface !== 'function') {
