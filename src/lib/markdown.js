@@ -34,7 +34,6 @@
  */
 
 const IMAGE_OMITTED_PLACEHOLDER = '[image omitted]';
-const INCOMPLETE_MARKER = '> _Response incomplete._';
 const FALLBACK_DOCUMENT_TITLE = 'DSH Conversation';
 
 /** Checkpoint summaries can be tens of thousands of characters; keep a usable prefix. */

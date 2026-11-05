@@ -1,17 +1,14 @@
 /**
  * The plugin-owned Host HTTP route behind the browser's "Copy as Markdown".
  *
- * The route is read-only: it reads one session, converts it to Markdown and
- * hands it back to the same-origin browser that asked for it. Nothing is
- * persisted and nothing leaves the machine.
+ * The route is read-only: it reads one session, converts it to Markdown (or a
+ * selectable message list) and hands it back to the same-origin browser that
+ * asked for it. Nothing is persisted and nothing leaves the machine.
  *
- * Which read is used matters. `sessionQuery.readSession` replays and validates
- * the *complete raw* log, including events the Host has since shadowed via
- * `compaction/prune` and bypassing anything the model no longer sees.
- * `sessionQuery.readSurface` returns the current model surface — the same event
- * set the model itself reasons over — so a compacted session exports what the
- * model actually still holds. `readSurface` is preferred and `readSession` is
- * the fallback for releases (or readings) where the surface cannot be folded.
+ * `sessionQuery.readSession` is the transcript source: its complete raw log
+ * retains the turns that compaction replaces on the model surface. `readSurface`
+ * is only a fallback when the raw log cannot be read or replayed; it is not a
+ * complete conversation history.
  *
  * Every failure path answers with a status and a short body; the handler never
  * throws, so a missing or renamed Host service can only cost the Markdown menu

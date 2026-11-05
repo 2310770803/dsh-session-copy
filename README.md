@@ -87,12 +87,12 @@ with its role, a one-line preview and its size, and copies only what you tick.
   what you are about to paste.
 - The copied document opens with `> Excerpt: 12 of 340 messages selected`, so a
   pasted fragment is never mistaken for a truncated export.
-- The picker lists what the model still holds: compaction checkpoints appear as
+- The picker includes the complete history: compaction checkpoints appear as
   their own rows, so an intentional summary can be included or left out on
   purpose.
 - Selecting is local to the dialog — nothing is copied until you press
-  **Copy**, and reopening the picker for the same session is instant
-  because the list is fetched once.
+  **Copy**. Opening it again refreshes the list, so messages added while the
+  picker was closed are not hidden by stale data.
 
 ## Install
 
@@ -235,10 +235,9 @@ version is a no-op, not an error.
 | Permissions | none — the Host route is read-only and same-origin fenced |
 
 Everything is feature-detected against the shared client module table. If a future
-DSH release drops the `Menu` primitive, the same three actions render in a
-self-contained popover instead of degrading into a row of flat buttons; if it
-renames a service, the affected piece degrades rather than raising inside the boot
-activation audit.
+DSH release drops the `Menu` primitive, the menu still renders in a
+self-contained popover; if it renames a service, the affected piece degrades
+rather than raising inside the boot activation audit.
 
 ## Display metadata
 
